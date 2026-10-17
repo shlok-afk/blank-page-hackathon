@@ -54,19 +54,12 @@
     "configuration": {
       "title": "Squiggle",
       "properties": {
-        "squiggle.sensitivity": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 100,
-          "default": 50,
-          "markdownDescription": "How trigger-happy the explainer is, from **Zen** (0 — stays quiet until an error is clearly real) to **Nitpicky** (100 — speaks up early and often). Higher values also start covering warnings and info hints."
-        },
         "squiggle.patience": {
           "type": "number",
           "minimum": 0,
           "maximum": 5000,
           "default": 1500,
-          "markdownDescription": "How long to wait for an error to stop changing before explaining it, in milliseconds. Errors flicker while you type, so a little patience avoids noise. **Instant** is 0; **Deep zen** is 5s. Only used when `squiggle.explainOn` is set to `auto`."
+          "markdownDescription": "How long to wait for an error to stop changing before explaining it, in milliseconds. Errors flicker while you type, so a little patience avoids noise. **Instant** is 0; **Deep zen** is 5s."
         },
         "squiggle.narration": {
           "type": "number",
@@ -81,22 +74,6 @@
           "maximum": 30,
           "default": 10,
           "markdownDescription": "How many lines of surrounding code are sent along with an error to make the explanation better. 0 sends just the error line — nothing extra leaves your computer."
-        },
-        "squiggle.explainOn": {
-          "type": "string",
-          "enum": ["auto", "save", "click"],
-          "default": "auto",
-          "enumDescriptions": [
-            "Automatically, once an error stops changing for a moment.",
-            "Only when you save the file.",
-            "Only when you ask (hover or right-click → Explain this error)."
-          ],
-          "description": "What starts an explanation: automatically, only when you save, or only when you ask. `squiggle.patience` only applies to `auto`."
-        },
-        "squiggle.statusBar": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show a connected / offline indicator for the core in the VS Code status bar."
         }
       }
     }

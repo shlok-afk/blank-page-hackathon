@@ -135,7 +135,7 @@ export const pythonErrors: LibraryEntry[] = [
   {
     id: 'py-unclosed-bracket',
     language: 'python',
-    pattern: /'[(\[{]' was never closed|unexpected EOF while parsing/,
+    pattern: /'[(\[{]' was (never|not) closed|unexpected EOF while parsing/, // runtime | Pylance
     headline: 'A bracket was opened and never closed',
     cause: 'Python reached the end of the file still waiting for a ), ] or }.',
     plain: "Brackets come in pairs: every ( needs a ), every [ needs a ], and every { needs a }. One of them is still open, so Python kept reading and ran out of code.",
@@ -188,6 +188,16 @@ export const pythonErrors: LibraryEntry[] = [
     plain: "Arguments are the values you pass into a function. There are two kinds: plain ones like f(5) and named ones like f(size=5). Python needs all the plain ones first.",
     fix: 'Move the name=value arguments (or the parameters with defaults) to the end.',
     snippet: 'def greet(name, greeting="hi"):\n    ...\ngreet("Ana", greeting="hello")',
+  },
+  {
+    id: 'py-statements-separated',
+    language: 'python',
+    pattern: /Statements must be separated by newlines or semicolons/, // Pylance
+    headline: 'Python sees two statements jammed onto one line',
+    cause: 'Usually a side effect of a missing ) or quote earlier on the line - or Python 2 style `print "hi"` without brackets.',
+    plain: "Python reads one instruction per line. Something on this line - often a bracket or quote that never closes - made it look like two instructions squashed together.",
+    fix: 'Fix any other error on this line first; this one often disappears with it. Otherwise put each statement on its own line.',
+    snippet: 'print("hi")',
   },
   {
     id: 'py-syntax',

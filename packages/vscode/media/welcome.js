@@ -6,7 +6,6 @@ const vscodeApi = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : 
 const post = (msg) => vscodeApi?.postMessage(msg);
 
 const sliders = [...document.querySelectorAll('.slider')];
-const segs = [...document.querySelectorAll('.seg')];
 const previews = [...document.querySelectorAll('.preview-body')];
 
 // Precise readouts: the slider is continuous, so show the exact number.
@@ -18,8 +17,6 @@ const fmt = {
 
 // Live extras that translate the raw number into what it actually means.
 const derived = {
-  sensitivity: (v) =>
-    v < 40 ? 'Flags: hard errors only' : v < 70 ? 'Flags: errors + warnings' : 'Flags: errors, warnings & info',
   contextLines: (v) =>
     v === 0
       ? 'Nothing extra is sent'
@@ -69,17 +66,6 @@ function setSliderValue(slider, value) {
   updateSlider(slider);
 }
 
-// Patience only means something when explanations run automatically, so dim it
-// (and say why) whenever the trigger is something else.
-function syncPatience(explainOn) {
-  const slider = document.querySelector('.slider[data-setting="patience"]');
-  if (!slider) return;
-  const idle = explainOn !== 'auto';
-  slider.classList.toggle('idle', idle);
-  const note = slider.querySelector('.note');
-  if (note) note.hidden = !idle;
-}
-
 // Flash the always-present "Saved ✓" — opacity only, so nothing reflows and the
 // slider stays exactly where the pointer left it.
 function flashSaved(root) {
@@ -93,14 +79,6 @@ function flashSaved(root) {
 // Apply settings pushed by the extension host.
 function apply(values) {
   for (const slider of sliders) setSliderValue(slider, values[slider.dataset.setting]);
-  for (const seg of segs) {
-    for (const b of seg.querySelectorAll('button')) {
-      b.setAttribute('aria-checked', String(b.dataset.value === values[seg.dataset.setting]));
-    }
-  }
-  const bar = document.querySelector('input[data-setting="statusBar"]');
-  if (bar) bar.checked = Boolean(values.statusBar);
-  syncPatience(values.explainOn);
 }
 
 // Dragging live-updates the glass; releasing commits to VS Code settings.
@@ -111,28 +89,13 @@ document.addEventListener('input', (e) => {
 
 document.addEventListener('change', (e) => {
   const input = e.target.closest('.slider input[type="range"]');
-  if (input) {
-    const slider = input.closest('.slider');
-    post({ type: 'set', key: slider.dataset.setting, value: input.valueAsNumber });
-    flashSaved(slider.querySelector('.slider-head'));
-    return;
-  }
-  const box = e.target.closest('input[data-setting]');
-  if (!box) return;
-  post({ type: 'set', key: box.dataset.setting, value: box.checked });
-  flashSaved(box.closest('.control'));
+  if (!input) return;
+  const slider = input.closest('.slider');
+  post({ type: 'set', key: slider.dataset.setting, value: input.valueAsNumber });
+  flashSaved(slider.querySelector('.slider-head'));
 });
 
 document.addEventListener('click', (e) => {
-  const b = e.target.closest('.seg button');
-  if (b) {
-    const seg = b.closest('.seg');
-    for (const other of seg.querySelectorAll('button')) other.setAttribute('aria-checked', String(other === b));
-    post({ type: 'set', key: seg.dataset.setting, value: b.dataset.value });
-    if (seg.dataset.setting === 'explainOn') syncPatience(b.dataset.value);
-    flashSaved(seg.closest('.control'));
-    return;
-  }
   const id = e.target.closest('button')?.id;
   if (id === 'play') post({ type: 'command', id: 'squiggle.playSamples' });
   else if (id === 'settings') post({ type: 'command', id: 'workbench.action.openSettings', arg: 'squiggle' });
@@ -142,5 +105,4 @@ document.addEventListener('click', (e) => {
 // Paint once at defaults so nothing is blank before the host answers, then ask
 // for the real settings.
 for (const slider of sliders) updateSlider(slider);
-syncPatience('auto');
 post({ type: 'ready' });

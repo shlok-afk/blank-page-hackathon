@@ -283,29 +283,6 @@ input[type='range']:focus-visible + .bubble {
 }
 .ends em { font-style: normal; white-space: nowrap; }
 
-/* Quiet explanatory tag, e.g. "Only used in Auto mode". */
-.note {
-  flex: none;
-  font-size: 0.72em;
-  color: var(--muted);
-  background: color-mix(in srgb, var(--fg) 7%, transparent);
-  border: 1px solid color-mix(in srgb, var(--fg) 14%, transparent);
-  border-radius: 999px;
-  padding: 2px 9px;
-  white-space: nowrap;
-}
-.note[hidden] { display: none; }
-
-/* A slider that has no effect in the current mode dims out, but stays usable. */
-.slider.idle .track-wrap,
-.slider.idle .ticks,
-.slider.idle .ends,
-.slider.idle .readout {
-  opacity: 0.45;
-  transition: opacity 0.2s;
-}
-.slider.idle .note { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
-
 /* Live "what this actually means" chip, e.g. "Flags: errors + warnings". */
 .chip {
   flex: none;
@@ -351,70 +328,6 @@ input[type='range']:focus-visible + .bubble {
   background: var(--inline-code-bg);
   padding: 0.1em 0.35em;
   border-radius: 4px;
-}
-
-/* ---- Segmented controls + toggle (discrete settings) ---- */
-.setting {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px 16px;
-  padding: 14px 0;
-  border-top: 1px solid color-mix(in srgb, var(--fg) 8%, transparent);
-}
-.seg {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 4px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--fg) 14%, transparent);
-  background: color-mix(in srgb, var(--fg) 5%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fg) 14%, transparent);
-  backdrop-filter: blur(10px);
-}
-.seg button {
-  font: inherit;
-  font-size: 0.88em;
-  color: var(--muted);
-  background: transparent;
-  border: 0;
-  border-radius: 999px;
-  padding: 5px 13px;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s, box-shadow 0.2s;
-  white-space: nowrap;
-}
-.seg button:hover { color: var(--fg); background: color-mix(in srgb, var(--fg) 8%, transparent); }
-.seg button[aria-checked='true'] {
-  color: var(--vscode-button-foreground, #fff);
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--accent) 88%, white),
-    var(--vscode-button-background, #0078d4)
-  );
-  box-shadow:
-    0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent),
-    inset 0 1px 0 rgb(255 255 255 / 0.3);
-}
-.seg button:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
-
-.toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  color: var(--muted);
-  font-size: 0.9em;
-}
-.toggle input { accent-color: var(--vscode-button-background, #0078d4); width: 16px; height: 16px; cursor: pointer; }
-
-/* Row that holds a discrete control plus its always-reserved "Saved" slot. */
-.control {
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 /* "Saved ✓" is always in the layout with its width reserved, and only ever

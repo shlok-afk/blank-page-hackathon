@@ -41,7 +41,6 @@ How we answer each part of the rubric: the claim we make, the evidence we show, 
 - **Doesn't nag:** it waits until you've stopped typing (about 1.2s), so you never get "errors" for half-typed lines. Point this out explicitly; it's a UX decision judges won't notice otherwise.
 - **Recognizable error:** the error title looks exactly like terminal output, with the error type in red, so users connect it to what they saw.
 - **Scannable details:** each card shows Language (color-coded), File and Type at a glance.
-- **Streams in live:** text appears word by word with a "Thinking…" state, so there's no dead wait.
 - **Matches the user's theme:** **switch themes during the demo** (Cmd+K Cmd+T, dark → light). The whole panel re-colors instantly. It's an easy wow moment.
 - **Polish:**
   - Frosted-glass cards and an ambient glow.
@@ -102,7 +101,7 @@ How we answer each part of the rubric: the claim we make, the evidence we show, 
 |---|---|---|
 | 0:00 | Hook | Show a real, scary error. "If you're three weeks into learning to code, what does this mean?" |
 | 0:30 | Problem | The gap between beginner tools and real editors. First errors are where people quit. |
-| 1:00 | Live demo | Type a typo in VS Code, pause, and the explanation streams into the panel. Then switch theme. Then copy the fix. |
+| 1:00 | Live demo | Type a typo in VS Code, pause, and the explanation appears in the panel. Then switch theme. Then copy the fix. |
 | 3:00 | How it works | One diagram: plugin → core (wait) → library / rules → panel. "Write the core once, plug in any editor." |
 | 3:45 | AI use | 20 seconds: no AI inside, and how we used it to build (see section 6). |
 | 4:05 | Future | More IDEs, Jupyter, Code.org: same engine. |

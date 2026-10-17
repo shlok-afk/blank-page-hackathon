@@ -92,7 +92,7 @@ const openSettings = () => vscode.commands.executeCommand('workbench.action.open
 async function migrateOldSettings() {
   const old = vscode.workspace.getConfiguration('errorExplainer');
   const cfg = vscode.workspace.getConfiguration('squiggle');
-  for (const key of ['sensitivity', 'patience', 'narration', 'contextLines', 'explainOn', 'statusBar']) {
+  for (const key of ['patience', 'narration', 'contextLines']) {
     const was = old.inspect(key);
     const now = cfg.inspect(key);
     if (was?.globalValue !== undefined && now?.globalValue === undefined)

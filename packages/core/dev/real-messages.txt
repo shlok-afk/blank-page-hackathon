@@ -110,3 +110,5 @@ typescript | Cannot find module './missing' or its corresponding type declaratio
 typescript | TypeError: Cannot read properties of undefined (reading 'length')
 python | Expected module name
 python | Expected one or more symbol names after "import"
+python | Statements must be separated by newlines or semicolons
+python | "(" was not closed

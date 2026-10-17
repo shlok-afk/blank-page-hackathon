@@ -29,7 +29,7 @@ Every explanation has the same three parts:
 - **Automatic, but not naggy:** it waits until you stop typing, so half-typed lines never trigger an explanation.
 - **Save-aware:** "12s after you saved auth.py" helps you connect a new error to the change that caused it.
 - **Familiar error titles:** each error is shown the way a terminal prints it, with its language, file, line and source.
-- **Tunable:** sliders for sensitivity, patience before explaining, and how much hand-holding you want.
+- **Tunable:** sliders for patience before explaining, how much hand-holding you want, and how much nearby code is used.
 - **One-click copy** on every code example.
 - **Native look:** colors come from your VS Code theme (light, dark or high-contrast).
 - **Accessible:** works with screen readers and reduced motion, and everything is reachable by keyboard.

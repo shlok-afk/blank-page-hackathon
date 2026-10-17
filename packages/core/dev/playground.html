@@ -1,252 +1,283 @@
-<title>Error Explainer Playground</title>
+<title>Squiggle Playground</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
-/* The extension's real panel stylesheet, unchanged. It reads --vscode-* variables, which we define below. */
+/* The extension's real panel stylesheet, unchanged. It reads --vscode-* variables, defined below. */
 /*PANEL_CSS*/
 
-/* Layout: intro + error input on the left, the extension's Explanations panel on the right; stacks on phones. */
+/* Layout: a VS Code window (title bar / activity bar + editor + Squiggle sidebar / status bar); the sidebar drops under the editor on phones. */
 :root {
-  --page: #f3f5f9;
-  --surface: #ffffff;
-  --ink: #1b2130;
-  --soft: #5a6375;
-  --line: #d6dce6;
-  --blue: #2457d6;
-  --display: 'Bricolage Grotesque', 'IBM Plex Sans', system-ui, sans-serif;
+  --page: #e4e7ec;
+  --chrome: #f8f8f8;
+  --editor: #ffffff;
+  --text: #3b3b3b;
+  --dim: #6e7681;
+  --rule: #e5e5e5;
+  --blue: #0078d4;
+  --sq-err: #e51400;
+  --sq-warn: #bf8803;
+  --tok-kw: #af00db;
+  --tok-def: #0000ff;
+  --tok-str: #a31515;
+  --tok-num: #098658;
+  --tok-fn: #795e26;
+  --tok-var: #001080;
+  --tok-com: #008000;
+  --ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Ubuntu, sans-serif;
+  --code: 'JetBrains Mono', Menlo, Consolas, 'Courier New', monospace;
 
-  --vscode-font-family: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --vscode-font-size: 14px;
-  --vscode-editor-font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
-  --vscode-editor-font-size: 13px;
-  --vscode-foreground: var(--ink);
-  --vscode-descriptionForeground: var(--soft);
-  --vscode-widget-border: var(--line);
+  --vscode-font-family: var(--ui);
+  --vscode-font-size: 13px;
+  --vscode-editor-font-family: var(--code);
+  --vscode-editor-font-size: 12.5px;
+  --vscode-foreground: var(--text);
+  --vscode-descriptionForeground: var(--dim);
+  --vscode-widget-border: var(--rule);
   --vscode-focusBorder: var(--blue);
-  --vscode-editor-background: var(--page);
   --vscode-terminal-background: #ffffff;
-  --vscode-terminal-foreground: var(--ink);
-  --vscode-terminal-ansiRed: #c62f2f;
-  --vscode-terminal-ansiGreen: #0b7f56;
-  --vscode-terminal-ansiBlue: #1d55c9;
-  --vscode-terminal-ansiYellow: #8a6200;
-  --vscode-terminal-ansiMagenta: #9b2a99;
-  --vscode-terminal-ansiCyan: #0b6f86;
-  --vscode-textCodeBlock-background: #eef1f7;
-  --vscode-textPreformat-foreground: #9a3c12;
-  --vscode-textPreformat-background: #e6eaf2;
-  --vscode-editorCursor-foreground: var(--ink);
+  --vscode-terminal-foreground: var(--text);
+  --vscode-terminal-ansiRed: #cd3131;
+  --vscode-terminal-ansiGreen: #00bc00;
+  --vscode-terminal-ansiBlue: #0451a5;
+  --vscode-terminal-ansiYellow: #949800;
+  --vscode-terminal-ansiMagenta: #bc05bc;
+  --vscode-terminal-ansiCyan: #0598bc;
+  --vscode-textCodeBlock-background: #f2f2f2;
+  --vscode-textPreformat-foreground: #a31515;
+  --vscode-textPreformat-background: #0000000f;
+  --vscode-editorCursor-foreground: #000000;
   --vscode-button-background: var(--blue);
   --vscode-button-foreground: #ffffff;
-  --vscode-button-hoverBackground: #1b47b8;
-  --vscode-textLink-foreground: #1b47b8;
-  --vscode-textLink-activeForeground: #12358f;
+  --vscode-button-hoverBackground: #026ec1;
+  --vscode-textLink-foreground: #005fb8;
+  --vscode-textLink-activeForeground: #004a8f;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --page: #12141a; --surface: #191c24; --ink: #d7dbe4; --soft: #8c94a5; --line: #2b303c; --blue: #5b93ff;
-    --vscode-terminal-background: #0d0f14; --vscode-terminal-ansiRed: #f25555; --vscode-terminal-ansiGreen: #34d39b;
-    --vscode-terminal-ansiBlue: #66a1ff; --vscode-terminal-ansiYellow: #e6c853; --vscode-terminal-ansiMagenta: #d978d7;
-    --vscode-terminal-ansiCyan: #45c6e6; --vscode-textCodeBlock-background: #0b0d12; --vscode-textPreformat-foreground: #e7b96e;
-    --vscode-textPreformat-background: #ffffff14; --vscode-button-background: #3b74e8; --vscode-button-hoverBackground: #4c82f0;
-    --vscode-textLink-foreground: #8ab6ff; --vscode-textLink-activeForeground: #b3cfff;
+    --page: #0c0d10; --chrome: #181818; --editor: #1f1f1f; --text: #cccccc; --dim: #858585; --rule: #2b2b2b;
+    --sq-err: #f14c4c; --sq-warn: #cca700;
+    --tok-kw: #c586c0; --tok-def: #569cd6; --tok-str: #ce9178; --tok-num: #b5cea8; --tok-fn: #dcdcaa; --tok-var: #9cdcfe; --tok-com: #6a9955;
+    --vscode-terminal-background: #181818; --vscode-terminal-ansiRed: #f14c4c; --vscode-terminal-ansiGreen: #23d18b;
+    --vscode-terminal-ansiBlue: #3b8eea; --vscode-terminal-ansiYellow: #e5e510; --vscode-terminal-ansiMagenta: #d670d6;
+    --vscode-terminal-ansiCyan: #29b8db; --vscode-textCodeBlock-background: #0a0a0a66; --vscode-textPreformat-foreground: #d7ba7d;
+    --vscode-textPreformat-background: #ffffff1a; --vscode-editorCursor-foreground: #aeafad;
+    --vscode-textLink-foreground: #4daafc; --vscode-textLink-activeForeground: #7cc2ff;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --page: #12141a; --surface: #191c24; --ink: #d7dbe4; --soft: #8c94a5; --line: #2b303c; --blue: #5b93ff;
-  --vscode-terminal-background: #0d0f14; --vscode-terminal-ansiRed: #f25555; --vscode-terminal-ansiGreen: #34d39b;
-  --vscode-terminal-ansiBlue: #66a1ff; --vscode-terminal-ansiYellow: #e6c853; --vscode-terminal-ansiMagenta: #d978d7;
-  --vscode-terminal-ansiCyan: #45c6e6; --vscode-textCodeBlock-background: #0b0d12; --vscode-textPreformat-foreground: #e7b96e;
-  --vscode-textPreformat-background: #ffffff14; --vscode-button-background: #3b74e8; --vscode-button-hoverBackground: #4c82f0;
-  --vscode-textLink-foreground: #8ab6ff; --vscode-textLink-activeForeground: #b3cfff;
+  --page: #0c0d10; --chrome: #181818; --editor: #1f1f1f; --text: #cccccc; --dim: #858585; --rule: #2b2b2b;
+  --sq-err: #f14c4c; --sq-warn: #cca700;
+  --tok-kw: #c586c0; --tok-def: #569cd6; --tok-str: #ce9178; --tok-num: #b5cea8; --tok-fn: #dcdcaa; --tok-var: #9cdcfe; --tok-com: #6a9955;
+  --vscode-terminal-background: #181818; --vscode-terminal-ansiRed: #f14c4c; --vscode-terminal-ansiGreen: #23d18b;
+  --vscode-terminal-ansiBlue: #3b8eea; --vscode-terminal-ansiYellow: #e5e510; --vscode-terminal-ansiMagenta: #d670d6;
+  --vscode-terminal-ansiCyan: #29b8db; --vscode-textCodeBlock-background: #0a0a0a66; --vscode-textPreformat-foreground: #d7ba7d;
+  --vscode-textPreformat-background: #ffffff1a; --vscode-editorCursor-foreground: #aeafad;
+  --vscode-textLink-foreground: #4daafc; --vscode-textLink-activeForeground: #7cc2ff;
   color-scheme: dark;
 }
 
 body {
   background: var(--page);
-  color: var(--ink);
+  color: var(--text);
+  font: 13px/1.5 var(--ui);
   padding: 0;
-  padding-block: 40px 56px;
+  padding-block: 28px 40px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
-.wrap {
-  max-width: 1120px;
+body::before { display: none; } /* the panel's ambient glow is for VS Code's sidebar, not this page */
+
+.intro { max-width: 1240px; margin: 0 auto 16px; display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; }
+h1 { margin: 0; font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; }
+.intro p { margin: 0; color: var(--dim); }
+.intro code { font-family: var(--code); font-size: 0.95em; color: var(--text); }
+
+/* ---------- the window ---------- */
+.win {
+  max-width: 1240px;
   margin: 0 auto;
+  height: min(680px, 86vh);
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
-  gap: 32px;
-  align-items: start;
+  grid-template-rows: 32px minmax(0, 1fr) 22px;
+  background: var(--editor);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgb(0 0 0 / 0.18);
 }
-@media (max-width: 820px) { .wrap { grid-template-columns: minmax(0, 1fr); } }
-
-.intro { display: grid; gap: 20px; min-width: 0; }
-.eyebrow {
-  font: 600 0.75rem var(--vscode-editor-font-family);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--blue);
-}
-h1 {
-  font-family: var(--display);
-  font-weight: 800;
-  font-size: clamp(2.2rem, 5vw, 3.2rem);
-  line-height: 1.02;
-  letter-spacing: -0.02em;
-  margin: 0;
-  text-wrap: balance;
-}
-.lede { margin: 0; font-size: 1.05rem; color: var(--soft); max-width: 46ch; }
-.lede strong { color: var(--ink); }
-
-form {
+.titlebar {
   display: grid;
-  gap: 12px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 16px;
-}
-.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
-label { font-weight: 600; font-size: 0.9rem; }
-select, textarea {
-  font: inherit;
-  color: var(--ink);
-  background: var(--page);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
-select { padding: 6px 8px; }
-textarea {
-  font-family: var(--vscode-editor-font-family);
-  font-size: 13px;
-  padding: 10px 12px;
-  min-height: 84px;
-  resize: vertical;
-  width: 100%;
-  box-sizing: border-box;
-}
-select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-.primary {
-  font: 600 0.95rem var(--vscode-font-family);
-  color: var(--vscode-button-foreground);
-  background: var(--vscode-button-background);
-  border: 0;
-  border-radius: 8px;
-  padding: 8px 16px;
-  cursor: pointer;
-}
-.primary:hover { background: var(--vscode-button-hoverBackground); }
-.kbd { font-size: 0.8rem; color: var(--soft); }
-.status { margin: 0; font-size: 0.85rem; color: var(--soft); min-height: 1.3em; }
-.status code { font-family: var(--vscode-editor-font-family); color: var(--ink); }
-
-.examples { display: grid; gap: 8px; }
-.examples h2 { font-size: 0.8rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--soft); margin: 0; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip {
-  font: 12px var(--vscode-editor-font-family);
-  color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 5px 10px;
-  cursor: pointer;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.chip:hover { border-color: var(--blue); }
-.chip b { font-weight: 600; color: var(--vscode-terminal-ansiRed); }
-
-.note { margin: 0; font-size: 0.9rem; color: var(--soft); max-width: 50ch; }
-.note a { color: var(--vscode-textLink-foreground); }
-
-/* The panel, framed like VS Code's secondary sidebar. */
-.pane {
-  min-width: 0;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  overflow: hidden;
-}
-.pane-bar {
-  display: flex;
-  justify-content: space-between;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px 8px 16px;
-  border-bottom: 1px solid var(--line);
-  font: 600 11px var(--vscode-font-family);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--soft);
+  padding: 0 12px;
+  background: var(--chrome);
+  border-bottom: 1px solid var(--rule);
+  font-size: 12px;
+  color: var(--dim);
 }
-.ghost {
-  font: 600 12px var(--vscode-font-family);
-  color: var(--soft);
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  padding: 4px 8px;
-  cursor: pointer;
-  text-transform: none;
-  letter-spacing: 0;
+.dots { display: flex; gap: 8px; }
+.dots i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+.dots i:nth-child(2) { background: #febc2e; }
+.dots i:nth-child(3) { background: #28c840; }
+.titlebar .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.workbench { display: grid; grid-template-columns: 48px minmax(0, 1fr) minmax(300px, 38%); min-height: 0; }
+
+.activity { background: var(--chrome); border-right: 1px solid var(--rule); display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 6px; }
+.activity span { width: 48px; height: 44px; display: grid; place-items: center; color: var(--dim); }
+.activity span.on { color: var(--text); box-shadow: inset 2px 0 0 var(--blue); }
+.activity svg { width: 24px; height: 24px; }
+
+.editor { display: grid; grid-template-rows: 35px 22px minmax(0, 1fr); min-width: 0; min-height: 0; }
+.tabs { display: flex; align-items: stretch; justify-content: space-between; background: var(--chrome); border-bottom: 1px solid var(--rule); }
+.tab {
+  display: flex; align-items: center; gap: 6px; padding: 0 14px;
+  background: var(--editor); border-right: 1px solid var(--rule); box-shadow: inset 0 1px 0 var(--blue);
+  font-size: 13px; margin-bottom: -1px;
 }
-.ghost:hover { color: var(--ink); border-color: var(--line); }
-.pane-body { position: relative; isolation: isolate; padding: 14px; min-height: 360px; }
-.pane .empty { margin: 72px auto; }
+.tab .py { font: 600 10px var(--code); color: #3572a5; }
+.tab.has-err .fname { color: var(--sq-err); }
+.tab.has-warn:not(.has-err) .fname { color: var(--sq-warn); }
+.tab .count { font-size: 11px; color: inherit; }
+.tab-actions { display: flex; align-items: center; padding: 0 8px; }
+.tool {
+  font: 12px var(--ui); color: var(--dim); background: none; border: 1px solid transparent;
+  border-radius: 5px; padding: 3px 8px; cursor: pointer;
+}
+.tool:hover { color: var(--text); background: color-mix(in srgb, var(--text) 8%, transparent); }
+.tool:focus-visible { outline: 1px solid var(--blue); }
+.crumbs { display: flex; align-items: center; gap: 6px; padding: 0 16px; font-size: 12px; color: var(--dim); background: var(--editor); }
+
+/* Code: a transparent textarea over a highlighted <pre>, in one grid cell so they size together. */
+.scroller { overflow: auto; background: var(--editor); display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+.gutter, .hl, #code {
+  font: 12.5px/20px var(--code);
+  font-variant-ligatures: none;
+  tab-size: 4;
+  padding-block: 6px 40px;
+  margin: 0;
+}
+.gutter {
+  position: sticky; left: 0; z-index: 2;
+  background: var(--editor);
+  color: var(--dim);
+  text-align: right;
+  padding-left: 12px;
+  padding-right: 18px;
+  user-select: none;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+}
+.gutter b { font-weight: 400; color: var(--text); }
+.stack { display: grid; min-width: max-content; }
+.stack > * { grid-area: 1 / 1; }
+.hl { white-space: pre; color: var(--tok-var); padding-right: 24px; pointer-events: none; }
+#code {
+  border: 0; outline: 0; resize: none; overflow: hidden;
+  background: transparent; color: transparent; caret-color: var(--vscode-editorCursor-foreground);
+  white-space: pre; padding-left: 0; padding-right: 24px; width: 100%; box-sizing: border-box;
+}
+#code::selection { background: color-mix(in srgb, var(--blue) 30%, transparent); color: transparent; }
+.kw { color: var(--tok-kw); } .def { color: var(--tok-def); } .str { color: var(--tok-str); }
+.num { color: var(--tok-num); } .fn { color: var(--tok-fn); } .com { color: var(--tok-com); } .op { color: var(--text); }
+.sq-error { text-decoration: underline wavy var(--sq-err); text-decoration-skip-ink: none; text-underline-offset: 3px; }
+.sq-warning { text-decoration: underline wavy var(--sq-warn); text-decoration-skip-ink: none; text-underline-offset: 3px; }
+/* A squiggle at the end of a line (missing colon) needs a character to sit under. */
+.eol { display: inline-block; width: 1ch; }
+
+/* ---------- Squiggle sidebar: the real panel ---------- */
+.side { background: var(--chrome); border-left: 1px solid var(--rule); display: grid; grid-template-rows: 35px minmax(0, 1fr); min-width: 0; min-height: 0; }
+.side-head { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 16px; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--dim); }
+.side-head b { font-weight: 600; color: var(--text); }
+.side-body { overflow: auto; padding: 12px; position: relative; isolation: isolate; }
+.side .card { --glass: var(--text); }
+.side .empty { margin: 56px auto 0; }
+
+.statusbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0 10px; background: var(--blue); color: #ffffff; font-size: 12px; white-space: nowrap; overflow: hidden; }
+.statusbar > div { display: flex; gap: 14px; align-items: center; min-width: 0; }
+.statusbar svg { width: 14px; height: 14px; vertical-align: -2px; }
+
+.foot { max-width: 1240px; margin: 14px auto 0; color: var(--dim); font-size: 12.5px; }
+.foot a { color: var(--vscode-textLink-foreground); }
+
+@media (max-width: 760px) {
+  .win { height: auto; grid-template-rows: 32px auto 22px; }
+  .workbench { grid-template-columns: minmax(0, 1fr); }
+  .activity { display: none; }
+  .editor { grid-template-rows: 35px 22px 360px; }
+  .side { border-left: 0; border-top: 1px solid var(--rule); grid-template-rows: 35px auto; }
+  .side-body { max-height: none; }
+  .titlebar .name { font-size: 11px; }
+  .hide-sm { display: none; }
+}
 </style>
 
-<div class="wrap">
-  <section class="intro">
-    <div class="eyebrow">VS Code extension · try it in the browser</div>
-    <h1>Error Explainer</h1>
-    <p class="lede">Explains your code's errors in plain English the moment you stop typing, <strong>with a fix you can copy</strong>. This page runs the extension's real explanation library. Paste an error to try it.</p>
-
-    <form id="form">
-      <div class="row">
-        <label for="msg">Error message</label>
-        <select id="lang" aria-label="Language">
-          <option value="python">Python</option>
-          <option value="javascript">JavaScript</option>
-          <option value="typescript">TypeScript</option>
-        </select>
-      </div>
-      <textarea id="msg" spellcheck="false" placeholder="TypeError: 'NoneType' object is not iterable"></textarea>
-      <div class="row">
-        <span class="kbd">Ctrl/⌘ + Enter</span>
-        <button class="primary" type="submit">Explain</button>
-      </div>
-      <p class="status" id="status" aria-live="polite"></p>
-    </form>
-
-    <div class="examples">
-      <h2>Or try a common one</h2>
-      <div class="chips" id="chips"></div>
-    </div>
-
-    <p class="note">In VS Code it runs on its own: it reads the red squiggles, waits until you stop typing, and also tells you which save probably caused the error. <a href="https://github.com/shlok-afk/blank-page-hackathon">Source on GitHub</a></p>
-  </section>
-
-  <section class="pane" aria-label="Explanations panel">
-    <div class="pane-bar">
-      <span>Explanations</span>
-      <button class="ghost" type="button" id="clear">Mark all fixed</button>
-    </div>
-    <div class="pane-body">
-      <main id="list" aria-live="polite"></main>
-      <div class="empty">
-        <strong>All clear</strong>
-        <p>When an error shows up in your code, a plain-language explanation will appear here, with a fix you can copy.</p>
-      </div>
-    </div>
-  </section>
+<div class="intro">
+  <h1>Squiggle</h1>
+  <p>Plain-English explanations for the red squiggles in VS Code. Fix a line below, for example change <code>pritn</code> to <code>print</code>, and the explanations update when you stop typing.</p>
 </div>
+
+<div class="win">
+  <div class="titlebar">
+    <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="name">dice_game.py — my-first-project — Visual Studio Code</div>
+    <div></div>
+  </div>
+
+  <div class="workbench">
+    <nav class="activity" aria-hidden="true">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5.5 5.5"/></svg></span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 7v10M18 10c0 4-6 3-12 7"/></svg></span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="7.5" height="7.5"/><rect x="3" y="13.5" width="7.5" height="7.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5"/><rect x="14.5" y="2" width="7" height="7" transform="rotate(12 18 5.5)"/></svg></span>
+      <span class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span>
+    </nav>
+
+    <section class="editor" aria-label="Editor">
+      <div class="tabs">
+        <div class="tab" id="tab"><span class="py">py</span><span class="fname">dice_game.py</span><span class="count" id="tab-count"></span></div>
+        <div class="tab-actions"><button class="tool" type="button" id="reset">Reset example</button></div>
+      </div>
+      <div class="crumbs">my-first-project <span aria-hidden="true">›</span> dice_game.py</div>
+      <div class="scroller" id="scroller">
+        <div class="gutter" id="gutter" aria-hidden="true"></div>
+        <div class="stack">
+          <pre class="hl" id="hl" aria-hidden="true"></pre>
+          <textarea id="code" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="dice_game.py, Python code"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side" aria-label="Squiggle explanations">
+      <div class="side-head"><span><b>Squiggle</b>: Explanations</span><button class="tool" type="button" id="clear">Mark all fixed</button></div>
+      <div class="side-body">
+        <main id="list" aria-live="polite"></main>
+        <div class="empty">
+          <strong>All clear</strong>
+          <p>When an error shows up in your code, a plain-language explanation will appear here, with a fix you can copy.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="statusbar">
+    <div>
+      <span id="st-problems"></span>
+    </div>
+    <div>
+      <span id="st-pos">Ln 1, Col 1</span>
+      <span class="hide-sm">Spaces: 4</span>
+      <span class="hide-sm">UTF-8</span>
+      <span>Python</span>
+      <span>✓ Squiggle</span>
+    </div>
+  </footer>
+</div>
+
+<p class="foot">Squiggles here come from a small checker built into this page; in VS Code they come from Pylance and TypeScript. The explanations and suggested fixes run the extension's real code. <a href="https://github.com/shlok-afk/blank-page-hackathon">Source on GitHub</a></p>
 
 <script>
 /*LIB_JS*/
@@ -255,87 +286,221 @@ select:focus-visible, textarea:focus-visible, button:focus-visible { outline: 2p
 /*PANEL_JS*/
 </script>
 <script>
-// Same steps as the core: library first, then the rule-based fallback. Rendered like core/src/render.ts.
-const EXAMPLES = [
-  ['python', "TypeError: 'NoneType' object is not iterable"],
-  ['python', "NameError: name 'pritn' is not defined"],
-  ['python', 'TypeError: can only concatenate str (not "int") to str'],
-  ['python', "AttributeError: module 'random' has no attribute 'randint'"],
-  ['python', "TypeError: Dog.bark() takes 1 positional argument but 2 were given"],
-  ['javascript', "TypeError: Cannot read properties of undefined (reading 'name')"],
-  ['typescript', "Property 'emial' does not exist on type 'User'."],
-];
+(() => { // own scope: panel.js already declares top-level names like `esc`
+const EXAMPLE = `import random
+from math import
+
+def roll_dice(sides):
+    return random.randint(1, sides)
+
+scores = []
+for turn in range(3)
+    scores.append(roll_dice(6))
+
+pritn("You rolled:", scores)
+print("Total:", sum(scores))
+`;
+const FILE = 'dice_game.py';
+const PATIENCE_MS = 1500; // squiggle.patience default: wait for typing to stop
+
+const KEYWORDS = new Set('False None True and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield'.split(' '));
+const DEF_KW = new Set('def class import from as return lambda None True False and or not in is'.split(' '));
+const BUILTINS = new Set('print input len range int str float list dict set tuple bool sum min max abs round sorted reversed enumerate zip map filter open type isinstance any all super object Exception ValueError TypeError KeyError IndexError NameError ZeroDivisionError iter next format chr ord id hash help dir vars getattr setattr hasattr callable divmod pow __name__ __file__ self cls'.split(' '));
+
+const $ = (id) => document.getElementById(id);
+const code = $('code');
+const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+
+// Strings and comments become spaces (same length), so the checker never reads inside them.
+const blank = (line) =>
+  line.replace(/#.*$|"(?:[^"\\]|\\.)*"?|'(?:[^'\\]|\\.)*'?/g, (m) => (m[0] === '#' ? ' '.repeat(m.length) : m[0] + ' '.repeat(Math.max(0, m.length - 2)) + (m.length > 1 ? m[m.length - 1] : '')));
+
+// ---------- a tiny Pylance stand-in: just enough to show real squiggles ----------
+function check(text) {
+  const lines = text.split('\n');
+  const clean = lines.map(blank);
+  const defined = new Set([...KEYWORDS, ...BUILTINS]);
+  const add = (s) => s && s.split(',').forEach((n) => { const w = n.trim().split(/\s+as\s+/).pop().split('.')[0]; if (/^\w+$/.test(w)) defined.add(w); });
+
+  for (const l of clean) {
+    let m;
+    if ((m = /^\s*import\s+(.+)$/.exec(l))) add(m[1]);
+    if ((m = /^\s*from\s+\S+\s+import\s+(.+)$/.exec(l))) add(m[1].replace(/[()]/g, ''));
+    if ((m = /^\s*(?:async\s+)?def\s+(\w+)\s*\(([^)]*)/.exec(l))) { defined.add(m[1]); m[2].split(',').forEach((p) => add(p.split(/[:=]/)[0].replace(/\*/g, ''))); }
+    if ((m = /^\s*class\s+(\w+)/.exec(l))) defined.add(m[1]);
+    if ((m = /^\s*([\w\s,]+?)\s*(?:[+\-*/%]?=)(?!=)/.exec(l))) add(m[1]);
+    for (const f of l.matchAll(/\bfor\s+([\w\s,]+?)\s+in\b/g)) add(f[1]);
+    for (const a of l.matchAll(/\bas\s+(\w+)/g)) defined.add(a[1]);
+    for (const g of l.matchAll(/\b(?:global|nonlocal)\s+([\w\s,]+)/g)) add(g[1]);
+  }
+
+  const diags = [];
+  clean.forEach((l, i) => {
+    const trimmed = l.trimEnd();
+    if (!trimmed.trim()) return;
+    let m;
+    if ((m = /^(\s*)import\s*$/.exec(trimmed))) {
+      diags.push({ line: i, start: m[1].length, end: trimmed.length, severity: 'error', message: 'Expected module name' });
+      return;
+    }
+    if (/^\s*from\s+\S+\s+import\s*$/.test(trimmed)) {
+      diags.push({ line: i, start: trimmed.search(/\S/), end: trimmed.length, severity: 'error', message: 'Expected one or more symbol names after "import"' });
+      return;
+    }
+    if (/^\s*(import|from)\b/.test(trimmed)) return;
+
+    const opens = (trimmed.match(/[([{]/g) || []).length;
+    const closes = (trimmed.match(/[)\]}]/g) || []).length;
+    if (/^\s*(if|elif|else|for|while|def|class|try|except|finally|with)\b/.test(trimmed) && !trimmed.endsWith(':') && opens === closes) {
+      diags.push({ line: i, start: trimmed.length, end: trimmed.length + 1, severity: 'error', message: 'Expected ":"' });
+    }
+
+    for (const t of trimmed.matchAll(/\b[A-Za-z_]\w*\b/g)) {
+      const name = t[0];
+      const before = trimmed.slice(0, t.index).trimEnd();
+      const after = trimmed.slice(t.index + name.length);
+      if (defined.has(name) || before.endsWith('.') || /^\s*=(?!=)/.test(after)) continue;
+      diags.push({ line: i, start: t.index, end: t.index + name.length, severity: 'warning', message: `"${name}" is not defined` });
+    }
+  });
+  return diags;
+}
+
+// ---------- highlighting ----------
+const TOKEN = /(#.*$)|("(?:[^"\\]|\\.)*"?|'(?:[^'\\]|\\.)*'?)|(\b\d+(?:\.\d+)?\b)|(\b[A-Za-z_]\w*\b)|(\s+|.)/g;
+function tokens(line) {
+  const out = [];
+  for (const m of line.matchAll(TOKEN)) {
+    let cls = '';
+    if (m[1]) cls = 'com';
+    else if (m[2]) cls = 'str';
+    else if (m[3]) cls = 'num';
+    else if (m[4]) {
+      const next = line.slice(m.index + m[0].length);
+      cls = DEF_KW.has(m[0]) ? 'def' : KEYWORDS.has(m[0]) ? 'kw' : /^\s*\(/.test(next) || BUILTINS.has(m[0]) && m[0] !== 'self' ? 'fn' : '';
+    } else cls = /\s/.test(m[0]) ? '' : 'op';
+    out.push([m[0], cls]);
+  }
+  return out;
+}
+
+function renderLine(line, diag) {
+  let html = '';
+  let pos = 0;
+  for (const [text, cls] of tokens(line)) {
+    const a = pos, b = pos + text.length;
+    pos = b;
+    const cut = diag ? [a, Math.max(a, Math.min(b, diag.start)), Math.max(a, Math.min(b, diag.end)), b] : [a, b, b, b];
+    [[cut[0], cut[1], ''], [cut[1], cut[2], 'sq-' + (diag && diag.severity)], [cut[2], cut[3], '']].forEach(([s, e, sq]) => {
+      if (e <= s) return;
+      const c = [cls, sq].filter(Boolean).join(' ');
+      const t = esc(text.slice(s - a, e - a));
+      html += c ? `<span class="${c}">${t}</span>` : t;
+    });
+  }
+  if (diag && diag.start >= line.length) html += `<span class="eol sq-${diag.severity}"> </span>`;
+  return html;
+}
+
+function paint(text, diags) {
+  const lines = text.split('\n');
+  const byLine = new Map();
+  for (const d of diags) if (!byLine.has(d.line)) byLine.set(d.line, d);
+  $('hl').innerHTML = lines.map((l, i) => renderLine(l, byLine.get(i))).join('\n') + '\n';
+  const caretLine = text.slice(0, code.selectionStart).split('\n').length;
+  $('gutter').innerHTML = lines.map((_, i) => (i + 1 === caretLine ? `<b>${i + 1}</b>` : i + 1)).join('\n');
+  code.rows = lines.length;
+
+  const errors = diags.filter((d) => d.severity === 'error').length;
+  const warnings = diags.length - errors;
+  $('st-problems').textContent = `⊗ ${errors}   ⚠ ${warnings}`;
+  $('st-problems').setAttribute('aria-label', `${errors} errors, ${warnings} warnings`);
+  $('tab').classList.toggle('has-err', errors > 0);
+  $('tab').classList.toggle('has-warn', warnings > 0);
+  $('tab-count').textContent = diags.length ? String(diags.length) : '';
+}
+
+function updateCaret() {
+  const before = code.value.slice(0, code.selectionStart).split('\n');
+  $('st-pos').textContent = `Ln ${before.length}, Col ${before[before.length - 1].length + 1}`;
+}
+
+// ---------- explanations: same path as the extension -> core -> panel ----------
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const post = (m) => window.postMessage(m, '*');
-const $ = (id) => document.getElementById(id);
-const live = [];
-let count = 0;
+let reported = new Map(); // key -> card id, like connection.ts
 
-function toMarkdown(e, language) {
+function toMarkdown(e) {
   const parts = ['**' + e.headline + '**', e.cause, '**Fix:** ' + e.fix];
-  if (e.snippet) parts.push('```' + language + '\n' + e.snippet + '\n```');
+  if (e.snippet) parts.push('```python\n' + e.snippet + '\n```');
   return parts.join('\n\n');
 }
-const errorType = (m) => (/\b([A-Z]\w*(?:Error|Exception))\b/.exec(m) || [])[1] || '';
 
-async function explain(message, language, animate) {
-  message = message.trim();
-  if (!message) {
-    $('status').textContent = 'Paste an error message first.';
-    $('msg').focus();
-    return;
-  }
-  const entry = Explainer.lookupInLibrary(message, language);
-  const text = toMarkdown(entry || Explainer.explainUnknown(message, language), language);
-  const id = 'card' + ++count;
-  live.push(id);
-  $('status').innerHTML = entry
-    ? 'Matched built-in library entry <code>' + entry.id + '</code>.'
-    : 'Not in the library yet, so this is a general rule-based explanation.';
-  post({ type: 'start', id, title: message, language, source: errorType(message) });
+async function explainCard(id, d, lines, animate) {
+  const base = Explainer.lookupInLibrary(d.message, 'python') || Explainer.explainUnknown(d.message, 'python');
+  const suggestion = Explainer.suggestFix(d.message, lines[d.line], lines.join('\n'));
+  const text = toMarkdown({ ...base, ...suggestion });
+  post({ type: 'start', id, title: d.message, language: 'python', location: `${FILE}:${d.line + 1}`, source: 'Pylance' });
   if (animate && !reduceMotion) {
-    await sleep(350); // the "Thinking…" shimmer
+    await sleep(400);
     for (const word of text.match(/\S+\s*/g) || []) {
+      if (!reported.has(id.slice(5))) return; // fixed while it was still writing
       post({ type: 'chunk', id, delta: word });
-      await sleep(18);
+      await sleep(16);
     }
   }
   post({ type: 'explanation', id, text });
 }
 
-for (const [language, message] of EXAMPLES) {
-  const b = document.createElement('button');
-  b.type = 'button';
-  b.className = 'chip';
-  b.title = message;
-  const colon = message.indexOf(':');
-  if (colon > 0 && /Error$/.test(message.slice(0, colon))) {
-    const name = document.createElement('b');
-    name.textContent = message.slice(0, colon);
-    b.append(name, message.slice(colon));
-  } else b.textContent = message;
-  b.addEventListener('click', () => {
-    $('lang').value = language;
-    $('msg').value = message;
-    explain(message, language, true);
-  });
-  $('chips').append(b);
+function sync(animate) {
+  const text = code.value;
+  const lines = text.split('\n');
+  const next = new Map();
+  for (const d of check(text)) {
+    const key = `${d.line}:${d.start}:${d.message}`;
+    next.set(key, 'card:' + key);
+  }
+  for (const [key, id] of reported) if (!next.has(key)) post({ type: 'resolve', id });
+  const fresh = [...next].filter(([key]) => !reported.has(key));
+  reported = next;
+  // Newest card goes on top, so add bottom-to-top to keep them in file order.
+  const byKey = new Map(check(text).map((d) => [`${d.line}:${d.start}:${d.message}`, d]));
+  fresh.reverse().forEach(([key, id], n) => setTimeout(() => explainCard(id, byKey.get(key), lines, animate), animate ? n * 250 : 0));
 }
 
-$('form').addEventListener('submit', (e) => {
+let timer;
+function onEdit() {
+  paint(code.value, check(code.value));
+  updateCaret();
+  clearTimeout(timer);
+  timer = setTimeout(() => sync(true), PATIENCE_MS);
+}
+
+code.addEventListener('input', onEdit);
+code.addEventListener('keyup', () => { updateCaret(); paint(code.value, check(code.value)); });
+code.addEventListener('click', updateCaret);
+code.addEventListener('keydown', (e) => {
+  if (e.key !== 'Tab') return; // Tab indents, like an editor
   e.preventDefault();
-  explain($('msg').value, $('lang').value, true);
-});
-$('msg').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) $('form').requestSubmit();
-});
-$('clear').addEventListener('click', () => {
-  for (const id of live.splice(0)) post({ type: 'resolve', id });
-  $('status').textContent = '';
+  code.setRangeText('    ', code.selectionStart, code.selectionEnd, 'end');
+  onEdit();
 });
 
-// Open in a working state: two real explanations already in the panel.
-explain('TypeError: can only concatenate str (not "int") to str', 'python', false);
-explain("TypeError: 'NoneType' object is not iterable", 'python', false);
+$('reset').addEventListener('click', () => {
+  code.value = EXAMPLE;
+  onEdit();
+  clearTimeout(timer);
+  sync(true);
+});
+$('clear').addEventListener('click', () => {
+  for (const id of reported.values()) post({ type: 'resolve', id });
+  reported = new Map();
+});
+
+// Open in a working state: the example file, squiggled and explained.
+code.value = EXAMPLE;
+paint(code.value, check(code.value));
+sync(false);
+})();
 </script>

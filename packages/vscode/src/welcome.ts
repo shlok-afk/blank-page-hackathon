@@ -3,12 +3,9 @@ import * as vscode from 'vscode';
 // Settings the welcome screen can change. Keep in sync with `contributes.configuration`
 // in package.json and with media/welcome.js.
 const SETTING_KEYS = [
-  'sensitivity',
   'patience',
   'narration',
   'contextLines',
-  'explainOn',
-  'statusBar',
 ] as const;
 type SettingKey = (typeof SETTING_KEYS)[number];
 
@@ -82,7 +79,7 @@ export class WelcomePanel {
         Squiggle watches your editor for errors and explains them in plain language — automatically.
         When a red squiggle appears, it's quietly sent to a small program running in the background on your
         computer (the <strong>core</strong>), which waits a moment to make sure the error isn't just a
-        half-typed line, then looks up or generates an explanation and shows it in the panel beside your editor.
+        half-typed line, then looks up an explanation and shows it in the panel beside your editor.
       </p>
     </section>
 
@@ -91,11 +88,11 @@ export class WelcomePanel {
       <ol class="steps">
         <li><strong>You make a mistake.</strong> A red squiggle appears — that's your editor's diagnostic.</li>
         <li><strong>The core thinks for a second.</strong> Errors flicker while you type, so it waits until things settle.</li>
-        <li><strong>An explanation streams into the panel.</strong> Words appear as they're written, like someone typing you an answer.</li>
+        <li><strong>An explanation appears in the panel.</strong> What went wrong, why, and how to fix it.</li>
       </ol>
       <ul class="bullets">
         <li><strong>Repeat errors are instant.</strong> Explanations are cached, so the second time you see an error it appears immediately and costs nothing.</li>
-        <li><strong>Common errors are free.</strong> A built-in library covers frequent Python, JavaScript, and TypeScript mistakes before any AI is asked.</li>
+        <li><strong>Common errors are free.</strong> A built-in library covers frequent Python, JavaScript, and TypeScript mistakes.</li>
         <li><strong>You're in control.</strong> Everything runs on your own computer. Your code is never sent anywhere.</li>
       </ul>
     </section>
@@ -103,35 +100,9 @@ export class WelcomePanel {
     <section class="card">
       <h2>Tune the explainer</h2>
       <p class="hint">
-        The sliders shape <em>how</em> it behaves; the options underneath say <em>when</em> it's allowed to speak.
+        The sliders shape how it behaves.
         Every pick is saved instantly as a real setting (search <code>squiggle</code> in Settings).
       </p>
-
-      <div class="slider" data-setting="sensitivity">
-        <div class="slider-head">
-          <div class="setting-text">
-            <h3>Sensitivity</h3>
-            <p>How trigger-happy it is. Low: quiet until an error is clearly real. High: speaks up early and often.</p>
-          </div>
-          <span class="readout" aria-hidden="true"></span>
-          ${saved}
-        </div>
-        <div class="track-wrap">
-          <input type="range" min="0" max="100" step="1" value="50" data-setting="sensitivity" data-format="score" aria-label="Sensitivity, from lenient to strict">
-          <div class="bubble" aria-hidden="true"></div>
-        </div>
-        <div class="ticks">
-          <span data-at="0">Zen</span>
-          <span data-at="25">Chill</span>
-          <span data-at="50">Balanced</span>
-          <span data-at="75">Alert</span>
-          <span data-at="100">Nitpicky</span>
-        </div>
-        <div class="slider-foot">
-          <span class="ends"><em>Lenient</em><em>Strict</em></span>
-          <span class="chip" data-chip="sensitivity"></span>
-        </div>
-      </div>
 
       <div class="slider" data-setting="patience">
         <div class="slider-head">
@@ -154,7 +125,6 @@ export class WelcomePanel {
         </div>
         <div class="slider-foot">
           <span class="ends"><em>Impatient</em><em>Very patient</em></span>
-          <span class="note" data-note="patience" hidden>Only used in Auto mode</span>
         </div>
       </div>
 
@@ -228,34 +198,6 @@ export class WelcomePanel {
         </div>
       </div>
 
-      <div class="setting">
-        <div class="setting-text">
-          <h3>Trigger</h3>
-          <p>What starts an explanation. <strong>Patience</strong> above only applies to Auto.</p>
-        </div>
-        <div class="control">
-          <div class="seg" role="radiogroup" aria-label="What starts an explanation" data-setting="explainOn">
-            <button type="button" role="radio" data-value="auto">Auto</button>
-            <button type="button" role="radio" data-value="save">On save</button>
-            <button type="button" role="radio" data-value="click">On request</button>
-          </div>
-          ${saved}
-        </div>
-      </div>
-
-      <div class="setting">
-        <div class="setting-text">
-          <h3>Status bar indicator</h3>
-          <p>Shows <em>Squiggle connected</em> / <em>offline</em> at the bottom of VS Code.</p>
-        </div>
-        <div class="control">
-          <label class="toggle">
-            <input type="checkbox" data-setting="statusBar">
-            <span>On</span>
-          </label>
-          ${saved}
-        </div>
-      </div>
     </section>
 
     <section class="card">
@@ -268,7 +210,7 @@ export class WelcomePanel {
     </section>
 
     <footer>
-      <p><strong>Privacy:</strong> code around an error is sent only to the source you chose above. Nothing else leaves your computer.</p>
+      <p><strong>Privacy:</strong> everything runs on your own computer. Nothing leaves it.</p>
       <button type="button" class="primary" id="done">Done</button>
     </footer>
   </main>
@@ -280,12 +222,9 @@ export class WelcomePanel {
   private readSettings(): Record<SettingKey, unknown> {
     const cfg = vscode.workspace.getConfiguration('squiggle');
     return {
-      sensitivity: cfg.get('sensitivity'),
       patience: cfg.get('patience'),
       narration: cfg.get('narration'),
       contextLines: cfg.get('contextLines'),
-      explainOn: cfg.get('explainOn'),
-      statusBar: cfg.get('statusBar'),
     };
   }
 }

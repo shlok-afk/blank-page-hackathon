@@ -10,7 +10,7 @@ const read = (p: string) => readFileSync(join(root, p), 'utf8');
 
 const lib = buildSync({
   stdin: {
-    contents: "export { lookupInLibrary } from '../src/library/index';\nexport { explainUnknown } from '../src/classify';",
+    contents: "export { lookupInLibrary } from '../src/library/index';\nexport { explainUnknown } from '../src/classify';\nexport { suggestFix } from '../src/suggest';",
     resolveDir: __dirname,
     loader: 'ts',
   },
