@@ -28,11 +28,12 @@ Everything is written in TypeScript. We split it into two pieces:
 - Answers are instant, free, private, and predictable.
 
 ## What we learned
-Getting the timing right matters as much as the explanation itself. A tool that interrupts you too early is worse than no tool. We also learned that a clean split between plugin and core, with a fixed message format, let us work in parallel without stepping on each other.
+It's important to keep explanations short and sweet. Explanations should be easy to read and comprehend  and timed well so that they're actually helpful. We gained familiarity with TypeScript and extension development. We learned how to link the features of extensions for functionality, such as listening to the code editor's logs to trigger actions.
 
 ## What's next for Squiggle
 Because the core doesn't care which editor an error came from, adding another editor only means writing another small plugin.
+- Deploy Squiggle as an actual extension for VSCode.
 - Plugins for more editors: Neovim, JetBrains, Cursor.
 - More languages, and a bigger library of errors.
 - Errors not found in libraries can be outsourced to LLMs, with usage staying free for the user. This is what the $1000 would go towards. 
-- Support for Jupyter notebooks (for data-science students) and Code.org (for K–12) as a Chrome extension.
+- Support for Jupyter notebooks and Code.org (for K–12) as a Chrome extension.
