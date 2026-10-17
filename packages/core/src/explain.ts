@@ -21,8 +21,8 @@ export async function explain(
   //    (new snippets, better wording) show up without clearing the cache.
   const entry = lookupInLibrary(error.message, error.language);
   if (entry) {
-    const { headline, cause, fix, snippet } = entry;
-    return { headline, cause, fix, snippet, relatedSave: relatedSave ?? null };
+    const { headline, cause, plain, fix, snippet } = entry;
+    return { headline, cause, plain, fix, snippet, relatedSave: relatedSave ?? null };
   }
 
   // 2. Have we seen this exact error before?

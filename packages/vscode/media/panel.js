@@ -84,14 +84,18 @@ function addCopyButtons(c) {
 list.addEventListener('click', (e) => {
   const b = e.target.closest('.copy');
   if (!b) return;
-  navigator.clipboard.writeText(b.parentElement.querySelector('code').textContent).then(() => {
-    b.textContent = 'Copied ✓';
-    b.classList.add('done');
-    setTimeout(() => {
-      b.textContent = 'Copy';
-      b.classList.remove('done');
-    }, 1500);
-  });
+  const code = b.parentElement.querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(
+    () => {
+      b.textContent = 'Copied ✓';
+      b.classList.add('done');
+      setTimeout(() => {
+        b.textContent = 'Copy';
+        b.classList.remove('done');
+      }, 1500);
+    },
+    () => getSelection().selectAllChildren(code), // clipboard blocked: select it so Cmd/Ctrl+C works
+  );
 });
 
 function setStreaming(c, on) {

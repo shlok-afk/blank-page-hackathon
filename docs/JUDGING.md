@@ -9,7 +9,7 @@ How we answer each part of the rubric: the claim we make, the evidence we show, 
 | 25% | Does it solve the problem? | Explanation appears next to the code, automatically, only for real mistakes |
 | 15% | Presentation | Live demo: make a typo, watch it get explained |
 | 5% | Future work | Same engine, more places: more IDEs, Jupyter, Code.org |
-| 5% | AI use | AI only writes the explanation; everything else is plain code, and it's opt-in |
+| 5% | AI use | No AI inside the product: every explanation is hand-written or rule-based, and nothing leaves the computer |
 
 ---
 
@@ -82,13 +82,12 @@ How we answer each part of the rubric: the claim we make, the evidence we show, 
 - **Built to be cheap and fast:**
   - Common errors come from a built-in library: instant, free and offline.
   - Repeat errors come from a cache.
-  - The AI is only used for the long tail.
+  - Anything else is matched by pattern rules.
 
 **Get ahead of it: this is our biggest risk**
-- **Explanations are currently placeholders.** `explain.ts` returns stub text, and the panel demo uses hardcoded samples. To score here, aim to have before judging:
-  1. **The built-in library** for the errors we'll show in the demo, at minimum. It's reliable, fast and doesn't need the network.
-  2. **The real AI call** for anything else.
-  3. **End-to-end in VS Code:** UI 1 detects a real error, the core explains it, and the panel shows it.
+- **Coverage is only as good as the library.** Errors it doesn't know get a generic answer. Before judging, make sure:
+  1. **The built-in library** covers every error we'll show in the demo. It's reliable, fast and doesn't need the network.
+  2. **End-to-end in VS Code:** UI 1 detects a real error, the core explains it, and the panel shows it.
 - **If anything is still a stub on the day, say so honestly** and show the parts that are real. Judges penalize discovering a fake far more than being told.
 - **Have one "before vs. after" example ready:** the raw error, and our explanation of it.
 - **Bring a number if possible,** e.g. "we tested on N common beginner errors; the library covers X% instantly".
@@ -104,8 +103,8 @@ How we answer each part of the rubric: the claim we make, the evidence we show, 
 | 0:00 | Hook | Show a real, scary error. "If you're three weeks into learning to code, what does this mean?" |
 | 0:30 | Problem | The gap between beginner tools and real editors. First errors are where people quit. |
 | 1:00 | Live demo | Type a typo in VS Code, pause, and the explanation streams into the panel. Then switch theme. Then copy the fix. |
-| 3:00 | How it works | One diagram: plugin → core (wait) → library / AI → panel. "Write the core once, plug in any editor." |
-| 3:45 | AI use | 20 seconds: what the AI does and doesn't do (see section 6). |
+| 3:00 | How it works | One diagram: plugin → core (wait) → library / rules → panel. "Write the core once, plug in any editor." |
+| 3:45 | AI use | 20 seconds: no AI inside, and how we used it to build (see section 6). |
 | 4:05 | Future | More IDEs, Jupyter, Code.org: same engine. |
 | 4:30 | Close | Repeat the one-liner: "Your editor tells you *that* something's wrong. We tell you *why*." |
 
@@ -122,7 +121,7 @@ How we answer each part of the rubric: the claim we make, the evidence we show, 
 
 **Claim:** the architecture was designed for growth from day one, so future work means adding plugins, not rewrites.
 
-**Talking points** (full detail in the [README Future Work section](README.md#future-work))
+**Talking points** (full detail in the [README Future plans section](README.md#future-plans))
 1. **Multiple IDEs:**
    - Cursor, Windsurf and VSCodium are almost free: we just publish to Open VSX.
    - Then Neovim, JetBrains and a desktop app.
@@ -132,7 +131,7 @@ How we answer each part of the rubric: the claim we make, the evidence we show, 
    - A K–12 reading level.
    - Points to the exact block.
    - Strict privacy defaults for classrooms.
-4. **Also planned:** local AI (Ollama) for privacy, terminal/runtime errors, Marketplace publishing.
+4. **Also planned:** terminal/runtime errors, Marketplace publishing.
 
 **Get ahead of it:** keep this to about 25 seconds in the pitch, since it's only 5%. Show the IDE/browser diagram and move on.
 
@@ -140,25 +139,18 @@ How we answer each part of the rubric: the claim we make, the evidence we show, 
 
 ## 6. Clear explanation of AI use (5%)
 
-**Claim:** the AI does one narrow job, and everything around it is ordinary, testable code.
+**Claim:** Squiggle uses no AI inside the product. That's a deliberate choice for beginners: answers are instant, free, work offline, and never send anyone's code anywhere.
 
-**What the AI does**
-- Takes one error (message, language, nearby code) and writes a short explanation in our fixed format: headline, cause, fix.
-- Follows instructions to use beginner-friendly language: short, no jargon, always a concrete fix.
+**Where explanations come from**
+- **Hand-written library:** plain-English entries for common Python, JavaScript and TypeScript errors, checked against real messages from the real tools.
+- **Cache:** repeat errors are answered from saved results.
+- **Pattern rules:** anything else gets a rule-based answer based on the kind of error.
 
-**What the AI does *not* do**
-- **It doesn't decide when to explain.** That's a plain timer (the debounce).
-- **It doesn't explain common errors.** Those come from our hand-written library.
-- **It doesn't re-explain repeats.** Those come from the cache.
+**What Squiggle does *not* do**
 - **It doesn't write or change the user's code.** It explains; the student makes the fix. That's the point.
 
-**Model and data**
-- **Model:** Claude, through the Anthropic SDK, with the source swappable to our server, a local model (Ollama), or the user's own key.
-- **Data sent:** the error message and nearby code only. It's **opt-in**, the user can see exactly what's sent, and with Ollama nothing leaves the machine.
-
-**Get ahead of it**
-- **Be precise about what's live vs. planned:** today the AI call is stubbed (see section 3). Update this section once it's connected.
-- **Mention how we used AI to build it,** if the judges count that too: the team used Claude Code for scaffolding and UI work, with the team reviewing and committing every change.
+**How we used AI to build it**
+- The team used Claude Code for scaffolding, UI work and drafting library entries, with the team reviewing and committing every change.
 
 ---
 

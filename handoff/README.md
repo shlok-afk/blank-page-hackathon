@@ -65,10 +65,10 @@ import { connectToCore } from './connection';
 export function activate(context: vscode.ExtensionContext) {
   const panel = new ExplanationPanel(context.extensionUri);
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider('errorExplainer.panel', panel, {
+    vscode.window.registerWebviewViewProvider('squiggle.panel', panel, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
-    vscode.commands.registerCommand('errorExplainer.playSamples', () => playSamples(panel)),
+    vscode.commands.registerCommand('squiggle.playSamples', () => playSamples(panel)),
   );
 
   // ---- the whole integration is these two lines ----

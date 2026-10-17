@@ -25,7 +25,7 @@ const RETRY_MS = 1500;
 // "error" mid-word. Only check a file once it's been quiet this long (or on save).
 // Read on every keystroke, so changing it in Settings applies immediately.
 const typingIdleMs = () =>
-  vscode.workspace.getConfiguration('errorExplainer').get<number>('patience', 1500);
+  vscode.workspace.getConfiguration('squiggle').get<number>('patience', 1500);
 
 export type Connection = { stop: () => void };
 
@@ -70,6 +70,7 @@ export function connectToCore(post: (message: any) => void): Connection {
       language: doc.languageId,     // 'python', 'typescriptreact', ...
       severity: d.severity === vscode.DiagnosticSeverity.Error ? 'error' : 'warning',
       source: d.source,             // 'Pylance', 'ts(2339)', ...
+      narration: vscode.workspace.getConfiguration('squiggle').get<number>('narration', 33),
     });
   };
 

@@ -3,7 +3,7 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { createHash } from 'crypto';
 
-const DIR = join(homedir(), '.error-explainer');
+const DIR = join(homedir(), '.squiggle');
 const FILE = join(DIR, 'cache.json');
 
 export type Cached = { headline: string; cause: string; fix: string; snippet?: string };

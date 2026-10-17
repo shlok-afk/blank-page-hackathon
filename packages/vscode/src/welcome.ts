@@ -8,14 +8,13 @@ const SETTING_KEYS = [
   'narration',
   'contextLines',
   'explainOn',
-  'source',
   'statusBar',
 ] as const;
 type SettingKey = (typeof SETTING_KEYS)[number];
 
 // The welcome & setup screen: explains what the extension is, what to expect,
 // and lets the user tune it with liquid-glass sliders. Every control writes a
-// real VS Code setting (`errorExplainer.*`), so it also works from the Settings
+// real VS Code setting (`squiggle.*`), so it also works from the Settings
 // UI and settings.json.
 export class WelcomePanel {
   private panel?: vscode.WebviewPanel;
@@ -28,8 +27,8 @@ export class WelcomePanel {
       return;
     }
     const panel = vscode.window.createWebviewPanel(
-      'errorExplainer.welcome',
-      'Welcome — Error Explainer',
+      'squiggle.welcome',
+      'Welcome — Squiggle',
       { viewColumn: vscode.ViewColumn.Active, preserveFocus: false },
       { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')] },
     );
@@ -46,7 +45,7 @@ export class WelcomePanel {
         panel.webview.postMessage({ type: 'settings', values: this.readSettings() });
       } else if (m.type === 'set' && SETTING_KEYS.includes(m.key)) {
         // Global so it applies everywhere; each user picks their own comfort level.
-        await vscode.workspace.getConfiguration('errorExplainer').update(m.key, m.value, vscode.ConfigurationTarget.Global);
+        await vscode.workspace.getConfiguration('squiggle').update(m.key, m.value, vscode.ConfigurationTarget.Global);
       } else if (m.type === 'command' && typeof m.id === 'string') {
         vscode.commands.executeCommand(m.id, m.arg);
       } else if (m.type === 'close') {
@@ -72,7 +71,7 @@ export class WelcomePanel {
     <header class="hero">
       <img src="${asset('icon.svg')}" alt="" width="56" height="56">
       <div>
-        <h1>Error Explainer</h1>
+        <h1>Squiggle</h1>
         <p class="tagline">Red squiggle in, plain English out.</p>
       </div>
     </header>
@@ -80,7 +79,7 @@ export class WelcomePanel {
     <section class="card">
       <h2>What it is</h2>
       <p>
-        Error Explainer watches your editor for errors and explains them in plain language — automatically.
+        Squiggle watches your editor for errors and explains them in plain language — automatically.
         When a red squiggle appears, it's quietly sent to a small program running in the background on your
         computer (the <strong>core</strong>), which waits a moment to make sure the error isn't just a
         half-typed line, then looks up or generates an explanation and shows it in the panel beside your editor.
@@ -105,7 +104,7 @@ export class WelcomePanel {
       <h2>Tune the explainer</h2>
       <p class="hint">
         The sliders shape <em>how</em> it behaves; the options underneath say <em>when</em> it's allowed to speak.
-        Every pick is saved instantly as a real setting (search <code>errorExplainer</code> in Settings).
+        Every pick is saved instantly as a real setting (search <code>squiggle</code> in Settings).
       </p>
 
       <div class="slider" data-setting="sensitivity">
@@ -169,7 +168,7 @@ export class WelcomePanel {
           ${saved}
         </div>
         <div class="track-wrap">
-          <input type="range" min="0" max="100" step="1" value="50" data-setting="narration" data-format="score" aria-label="Narration, from terse to hand-holding">
+          <input type="range" min="0" max="100" step="1" value="33" data-setting="narration" data-format="score" aria-label="Narration, from terse to hand-holding">
           <div class="bubble" aria-hidden="true"></div>
         </div>
         <div class="ticks">
@@ -246,24 +245,8 @@ export class WelcomePanel {
 
       <div class="setting">
         <div class="setting-text">
-          <h3>Explanation source</h3>
-          <p>Where explanations come from. The built-in library and cache are always tried first.</p>
-        </div>
-        <div class="control">
-          <div class="seg" role="radiogroup" aria-label="Explanation source" data-setting="source">
-            <button type="button" role="radio" data-value="server">Free server</button>
-            <button type="button" role="radio" data-value="builtin">Built-in only</button>
-            <button type="button" role="radio" data-value="ollama">Local AI</button>
-            <button type="button" role="radio" data-value="apiKey">My API key</button>
-          </div>
-          ${saved}
-        </div>
-      </div>
-
-      <div class="setting">
-        <div class="setting-text">
           <h3>Status bar indicator</h3>
-          <p>Shows <em>Explainer connected</em> / <em>offline</em> at the bottom of VS Code.</p>
+          <p>Shows <em>Squiggle connected</em> / <em>offline</em> at the bottom of VS Code.</p>
         </div>
         <div class="control">
           <label class="toggle">
@@ -295,14 +278,13 @@ export class WelcomePanel {
   }
 
   private readSettings(): Record<SettingKey, unknown> {
-    const cfg = vscode.workspace.getConfiguration('errorExplainer');
+    const cfg = vscode.workspace.getConfiguration('squiggle');
     return {
       sensitivity: cfg.get('sensitivity'),
       patience: cfg.get('patience'),
       narration: cfg.get('narration'),
       contextLines: cfg.get('contextLines'),
       explainOn: cfg.get('explainOn'),
-      source: cfg.get('source'),
       statusBar: cfg.get('statusBar'),
     };
   }

@@ -1,8 +1,8 @@
-# Error Explainer
+# Squiggle
 
 > A desktop app that watches your code editor for errors and explains them in plain language, automatically.
 
-Error Explainer starts with **VS Code** and is designed to grow to other editors (Neovim, JetBrains, Cursor, and more) without being rewritten. It's free to use: common errors are explained from a built-in library, and the AI behind the other explanations can be swapped between options that don't require users to have an AI subscription.
+Squiggle starts with **VS Code** and is designed to grow to other editors (Neovim, JetBrains, Cursor, and more) without being rewritten. It's free to use: common errors are explained from a built-in library, and the AI behind the other explanations can be swapped between options that don't require users to have an AI subscription.
 
 ---
 
@@ -102,7 +102,7 @@ The core can get explanations from several sources, chosen in settings:
 ## Project Structure
 
 ```
-error-explainer/
+squiggle/
 ├── packages/
 │   ├── protocol/    # The shared message format (everyone uses this)
 │   ├── core/        # The background program
@@ -166,7 +166,7 @@ error-explainer/
 **Responsibilities**
 - Detect errors as they appear in VS Code
 - Convert them into our message format and send them to the core
-- Show a status indicator at the bottom of VS Code: *Explainer connected* / *offline*
+- Show a status indicator at the bottom of VS Code: *Squiggle connected* / *offline*
 - Add an **"Explain this error"** option on hover or right-click
 
 **Done when:** real errors from VS Code show up in Backend 1's log.

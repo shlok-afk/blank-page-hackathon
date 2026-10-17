@@ -4,6 +4,7 @@ export type LibraryEntry = {
   pattern: RegExp;           // match a SHORT, STABLE fragment
   headline: string;          // one line, plain English
   cause: string;             // why it happened
+  plain: string;             // same idea for a beginner: everyday words, jargon explained
   fix: string;               // what to change
   snippet?: string;          // copy-pasteable code for the fix, shown with a Copy button
 };

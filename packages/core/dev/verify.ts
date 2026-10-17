@@ -5,7 +5,8 @@ import { explainUnknown } from '../src/classify';
 import { cacheKey, cacheGet, cacheSet } from '../src/cache';
 import { explain } from '../src/explain';
 import { onFileSaved, onError } from '../src/pipeline';
-import { toMarkdown } from '../src/render';
+import { toMarkdown, depthOf } from '../src/render';
+import { allEntries } from '../src/library/index';
 
 let passed = 0;
 let failed = 0;
@@ -103,6 +104,15 @@ async function main() {
   check('a library fix carries a copy-paste snippet', !!libResult.snippet);
   check('the snippet renders as a copyable code block',
     toMarkdown(libResult, 'python').includes('```python\n' + libResult.snippet + '\n```'));
+
+  // Narration depth: each slider stop gives a different explanation.
+  const at = (n: number) => toMarkdown(libResult, 'python', depthOf(n));
+  check('the four narration stops each read differently', new Set([0, 33, 66, 100].map(at)).size === 4);
+  check('pro skips the cause', !at(0).includes(libResult.cause));
+  check('friendly uses the beginner wording', at(66).includes(libResult.plain!) && !at(66).includes(libResult.cause));
+  check('baby has both, plus the most text', at(100).includes(libResult.plain!) && at(100).includes(libResult.cause)
+    && at(100).length > at(66).length);
+  check('every library entry has beginner wording', allEntries.every((e) => e.plain.length > 20));
 
   const unknownResult = await explain(
     { message: 'SomeNeverSeenError ' + Date.now(), file: 'y.ts', line: 9, language: 'typescript' },

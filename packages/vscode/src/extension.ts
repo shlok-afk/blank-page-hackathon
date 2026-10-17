@@ -26,7 +26,7 @@ class ExplanationPanel implements vscode.WebviewViewProvider {
     view.webview.options = { enableScripts: true, localResourceRoots: [media] };
     view.webview.onDidReceiveMessage((m) => {
       if (m?.type === 'ready') this.markReady();
-      if (m?.type === 'openSettings') vscode.commands.executeCommand('errorExplainer.showWelcome');
+      if (m?.type === 'openSettings') vscode.commands.executeCommand('squiggle.showWelcome');
     });
     view.onDidDispose(() => {
       this.view = undefined;
@@ -76,7 +76,7 @@ async function streamText(panel: ExplanationPanel, id: string, text: string) {
 }
 
 async function playSamples(panel: ExplanationPanel) {
-  await vscode.commands.executeCommand('errorExplainer.panel.focus');
+  await vscode.commands.executeCommand('squiggle.panel.focus');
   await panel.ready;
   for (const s of SAMPLES) {
     panel.post({ type: 'start', id: s.id, title: s.title, language: s.language, location: s.location, source: s.source });
@@ -86,9 +86,24 @@ async function playSamples(panel: ExplanationPanel) {
 }
 
 // Settings UI filtered to our contributes.configuration block.
-const openSettings = () => vscode.commands.executeCommand('workbench.action.openSettings', 'errorExplainer');
+const openSettings = () => vscode.commands.executeCommand('workbench.action.openSettings', 'squiggle');
+
+// Carries settings saved under the old `errorExplainer.*` name over to `squiggle.*`.
+async function migrateOldSettings() {
+  const old = vscode.workspace.getConfiguration('errorExplainer');
+  const cfg = vscode.workspace.getConfiguration('squiggle');
+  for (const key of ['sensitivity', 'patience', 'narration', 'contextLines', 'explainOn', 'statusBar']) {
+    const was = old.inspect(key);
+    const now = cfg.inspect(key);
+    if (was?.globalValue !== undefined && now?.globalValue === undefined)
+      await cfg.update(key, was.globalValue, vscode.ConfigurationTarget.Global);
+    if (was?.workspaceValue !== undefined && now?.workspaceValue === undefined && vscode.workspace.workspaceFolders)
+      await cfg.update(key, was.workspaceValue, vscode.ConfigurationTarget.Workspace);
+  }
+}
 
 export function activate(context: vscode.ExtensionContext) {
+  migrateOldSettings();
   const panel = new ExplanationPanel(context.extensionUri);
   const conn = connectToCore((m: PanelMessage) => {
     if (m.type === 'explanation') return streamText(panel, m.id, m.text);
@@ -96,11 +111,11 @@ export function activate(context: vscode.ExtensionContext) {
     panel.post(m);
   });
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider('errorExplainer.panel', panel, {
+    vscode.window.registerWebviewViewProvider('squiggle.panel', panel, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
-    vscode.commands.registerCommand('errorExplainer.playSamples', () => playSamples(panel)),
-    vscode.commands.registerCommand('errorExplainer.showWelcome', openSettings),
+    vscode.commands.registerCommand('squiggle.playSamples', () => playSamples(panel)),
+    vscode.commands.registerCommand('squiggle.showWelcome', openSettings),
     { dispose: () => conn.stop() },
   );
 
