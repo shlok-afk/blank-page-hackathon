@@ -22,6 +22,8 @@ export type ErrorReportedMessage = {
   severity: string;      // 'error' | 'warning'
   source?: string;       // optional: 'Pylance', 'ts(2339)' - shown in the panel
   narration?: number;    // explanation depth: 0 (terse) to 100 (hand-holding), default 33 (Balanced)
+  lineText?: string;     // the line the error is on, for a line-specific fix
+  context?: string;      // nearby lines (squiggle.contextLines), to spot misspelled names
 };
 
 export type PluginMessage = HelloMessage | FileSavedMessage | ErrorReportedMessage;

@@ -96,7 +96,7 @@ export class WelcomePanel {
       <ul class="bullets">
         <li><strong>Repeat errors are instant.</strong> Explanations are cached, so the second time you see an error it appears immediately and costs nothing.</li>
         <li><strong>Common errors are free.</strong> A built-in library covers frequent Python, JavaScript, and TypeScript mistakes before any AI is asked.</li>
-        <li><strong>You're in control.</strong> Explaining with AI is opt-in, and your code only ever goes to the source you picked below.</li>
+        <li><strong>You're in control.</strong> Everything runs on your own computer. Your code is never sent anywhere.</li>
       </ul>
     </section>
 

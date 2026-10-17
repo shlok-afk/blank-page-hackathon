@@ -59,6 +59,10 @@ export function connectToCore(post: (message: any) => void): Connection {
     // Forget this and every line number in the demo is off by one.
     const line = d.range.start.line + 1;
     const column = d.range.start.character + 1;
+    const config = vscode.workspace.getConfiguration('squiggle');
+    const around = config.get<number>('contextLines', 10);
+    const first = Math.max(0, d.range.start.line - around);
+    const last = Math.min(doc.lineCount - 1, d.range.start.line + around);
 
     sendRaw({
       type: 'error.reported',
@@ -70,7 +74,9 @@ export function connectToCore(post: (message: any) => void): Connection {
       language: doc.languageId,     // 'python', 'typescriptreact', ...
       severity: d.severity === vscode.DiagnosticSeverity.Error ? 'error' : 'warning',
       source: d.source,             // 'Pylance', 'ts(2339)', ...
-      narration: vscode.workspace.getConfiguration('squiggle').get<number>('narration', 33),
+      narration: config.get<number>('narration', 33),
+      lineText: doc.lineAt(d.range.start.line).text,   // lets the core hand back this exact line, fixed
+      context: around ? doc.getText(new vscode.Range(first, 0, last, doc.lineAt(last).text.length)) : '',
     });
   };
 

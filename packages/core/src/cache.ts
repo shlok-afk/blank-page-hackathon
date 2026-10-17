@@ -6,7 +6,7 @@ import { createHash } from 'crypto';
 const DIR = join(homedir(), '.squiggle');
 const FILE = join(DIR, 'cache.json');
 
-export type Cached = { headline: string; cause: string; fix: string; snippet?: string };
+export type Cached = { headline: string; cause: string; plain?: string; fix: string; snippet?: string };
 
 let memory: Record<string, Cached> | null = null;
 

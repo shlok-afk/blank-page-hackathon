@@ -105,7 +105,7 @@ export const pythonErrors: LibraryEntry[] = [
   {
     id: 'py-missing-colon',
     language: 'python',
-    pattern: /expected ':'/,
+    pattern: /expected ':'/i, // runtime | Pylance (`Expected ":"`)
     headline: 'You forgot a colon',
     cause: 'Lines that start a block - if, for, while, def, class - must end with a colon.',
     plain: "In Python, a colon at the end of a line means \"a block of code starts on the next line\". Every if, for, while, def and class line needs one.",

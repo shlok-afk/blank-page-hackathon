@@ -4,6 +4,7 @@ import { lookupInLibrary } from '../src/library/index';
 import { explainUnknown } from '../src/classify';
 import { cacheKey, cacheGet, cacheSet } from '../src/cache';
 import { explain } from '../src/explain';
+import { suggestFix } from '../src/suggest';
 import { onFileSaved, onError } from '../src/pipeline';
 import { toMarkdown, depthOf } from '../src/render';
 import { allEntries } from '../src/library/index';
@@ -118,6 +119,20 @@ async function main() {
     { message: 'SomeNeverSeenError ' + Date.now(), file: 'y.ts', line: 9, language: 'typescript' },
   );
   check('an unknown error still gets an explanation', unknownResult.headline.length > 0);
+
+  section('4b. Line suggestions');
+  check('misspelled print is corrected in place',
+    suggestFix('"pritn" is not defined', '    pritn("hi")')?.snippet === '    print("hi")');
+  check('a misspelled variable is matched from nearby code',
+    suggestFix("NameError: name 'socre' is not defined", 'total = socre + 1', 'score = 0')?.snippet === 'total = score + 1');
+  check('a missing colon is added',
+    suggestFix('Expected ":"', 'for i in range(3)')?.snippet === 'for i in range(3):');
+  check('an empty from-import gets a template',
+    suggestFix('Expected one or more symbol names after "import"', 'from math import')?.snippet === 'from math import name_you_need');
+  check('no wild guess for a name nothing resembles',
+    suggestFix("'zqxwv' is not defined", 'zqxwv()') === undefined);
+  const withLine = await explain({ message: '"pritn" is not defined', file: 'a.py', line: 3, language: 'python', lineText: 'pritn(1)' });
+  check('explain() uses the line suggestion', withLine.snippet === 'print(1)' && withLine.fix.includes('`print`'));
 
   // ---------- 5. Pipeline ----------
   section('5. Pipeline - debounce and save correlation');
