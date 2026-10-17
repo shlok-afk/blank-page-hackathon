@@ -101,12 +101,21 @@ function setStreaming(c, on) {
 
 window.addEventListener('message', ({ data: m }) => {
   if (!m || !m.id) return;
+  if (m.type === 'resolve') {
+    const gone = cards.get(m.id);
+    if (gone) {
+      cards.delete(m.id);
+      gone.el.classList.add('leaving');
+      setTimeout(() => gone.el.remove(), 250); // timer, not animationend: reduced motion has no animation
+    }
+    return;
+  }
   const c = card(m.id);
   if (m.type === 'start') {
     c.el.querySelector('.title').innerHTML = terminalTitle(m.title ?? '');
     const lang = c.el.querySelector('.lang');
     lang.textContent = LANGS[m.language] ?? m.language ?? '';
-    lang.dataset.lang = m.language ?? '';
+    lang.dataset.lang = (m.language ?? '').toLowerCase(); // core sends 'Python', VS Code sends 'python'
     c.el.querySelector('.loc').textContent = m.location ?? '';
     c.el.querySelector('.src').textContent = m.source ?? '';
     c.text = '';

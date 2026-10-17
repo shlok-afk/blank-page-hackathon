@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
 import { SAMPLES } from './samples';
+import { connectToCore } from './connection';
 
 // Messages the panel understands. `chunk` and `explanation` match the core protocol,
 // so UI 1 can forward core messages straight through.
 export type PanelMessage =
   | { type: 'start'; id: string; title: string; language?: string; location?: string; source?: string }
   | { type: 'chunk'; id: string; delta: string }
-  | { type: 'explanation'; id: string; text: string };
+  | { type: 'explanation'; id: string; text: string }
+  | { type: 'resolve'; id: string }; // the error is gone: remove its card
 
 class ExplanationPanel implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
@@ -47,12 +49,27 @@ class ExplanationPanel implements vscode.WebviewViewProvider {
 </html>`;
   }
 
+  // Waits for the panel to load, so explanations that arrive before it's opened aren't lost.
   post(msg: PanelMessage) {
-    this.view?.webview.postMessage(msg);
+    this.ready.then(() => this.view?.webview.postMessage(msg));
   }
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// The core sends whole explanations; play them out word by word so they read as live.
+// ponytail: local animation, drop this once the core streams real `chunk`s.
+const streams = new Map<string, number>();
+async function streamText(panel: ExplanationPanel, id: string, text: string) {
+  const run = (streams.get(id) ?? 0) + 1;
+  streams.set(id, run);
+  for (const word of text.match(/\S+\s*/g) ?? []) {
+    if (streams.get(id) !== run) return; // a newer report of this error took over the card
+    panel.post({ type: 'chunk', id, delta: word });
+    await sleep(25);
+  }
+  panel.post({ type: 'explanation', id, text });
+}
 
 async function playSamples(panel: ExplanationPanel) {
   await vscode.commands.executeCommand('errorExplainer.panel.focus');
@@ -60,20 +77,22 @@ async function playSamples(panel: ExplanationPanel) {
   for (const s of SAMPLES) {
     panel.post({ type: 'start', id: s.id, title: s.title, language: s.language, location: s.location, source: s.source });
     await sleep(400); // fake "thinking" time
-    for (const word of s.text.match(/\S+\s*/g) ?? []) {
-      panel.post({ type: 'chunk', id: s.id, delta: word });
-      await sleep(25);
-    }
-    panel.post({ type: 'explanation', id: s.id, text: s.text });
+    await streamText(panel, s.id, s.text);
   }
 }
 
 export function activate(context: vscode.ExtensionContext) {
   const panel = new ExplanationPanel(context.extensionUri);
+  const conn = connectToCore((m: PanelMessage) => {
+    if (m.type === 'explanation') return streamText(panel, m.id, m.text);
+    if (m.type === 'resolve') streams.delete(m.id); // stops any word-by-word playback for it
+    panel.post(m);
+  });
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('errorExplainer.panel', panel, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
     vscode.commands.registerCommand('errorExplainer.playSamples', () => playSamples(panel)),
+    { dispose: () => conn.stop() },
   );
 }
