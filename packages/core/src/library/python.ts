@@ -20,7 +20,7 @@ export const pythonErrors: LibraryEntry[] = [
   {
     id: 'py-name-not-defined',
     language: 'python',
-    pattern: /NameError: name|is not defined/,
+    pattern: /NameError: name|is not defined/, // runtime | Pylance wording
     headline: "You used a name that doesn't exist yet",
     cause: 'You misspelled a variable or function, or used it before defining it.',
     fix: 'Check the spelling, and make sure the line that creates it runs before this one.',

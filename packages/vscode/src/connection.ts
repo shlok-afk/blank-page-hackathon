@@ -17,12 +17,13 @@
 // core not running yet) is handled below.
 
 import * as vscode from 'vscode';
-// The extension's tsconfig has no esModuleInterop, so this must be a
-// namespace/require import rather than a default import.
-import WebSocket = require('ws');
+import WebSocket from 'ws';
 
 const CORE_URL = 'ws://localhost:4321';
 const RETRY_MS = 1500;
+// Hold off while the user is typing: `pri`, `prit`, `pritn` are each a different
+// "error" mid-word. Only check a file once it's been quiet this long (or on save).
+const TYPING_IDLE_MS = 4_000;
 
 export type Connection = { stop: () => void };
 
@@ -31,9 +32,11 @@ export function connectToCore(post: (message: any) => void): Connection {
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
   let stopped = false;
 
-  // Per file: the diagnostics we have already sent, so that typing in a file
-  // does not re-send every squiggle it already has.
-  const reported = new Map<string, Set<string>>();
+  // Per file: the diagnostics we have already sent (key -> errorId), so that typing
+  // in a file does not re-send every squiggle it already has, and so we know
+  // which cards to remove once their error is gone.
+  const reported = new Map<string, Map<string, string>>();
+  const active = () => new Set([...reported.values()].flatMap((m) => [...m.values()]));
 
   const isOpen = () => !!ws && ws.readyState === WebSocket.OPEN;
 
@@ -44,6 +47,11 @@ export function connectToCore(post: (message: any) => void): Connection {
   const keyFor = (d: vscode.Diagnostic) =>
     (d.range.start.line + 1) + ':' + (d.range.start.character + 1) + ':' + d.message;
 
+  // Stable for the same error, which lets the panel update an existing
+  // card instead of stacking a new one every time you type.
+  const idFor = (doc: vscode.TextDocument, d: vscode.Diagnostic) =>
+    [doc.uri.fsPath, d.range.start.line + 1, d.range.start.character + 1, d.message].join(':');
+
   const sendDiagnostic = (doc: vscode.TextDocument, d: vscode.Diagnostic) => {
     // VS Code counts lines and columns from 0. The core counts from 1.
     // Forget this and every line number in the demo is off by one.
@@ -52,15 +60,13 @@ export function connectToCore(post: (message: any) => void): Connection {
 
     sendRaw({
       type: 'error.reported',
-      // Stable for the same error, which lets the panel update an existing
-      // card instead of stacking a new one every time you type.
-      errorId: [doc.uri.fsPath, line, column, d.message].join(':'),
+      errorId: idFor(doc, d),
       message: d.message,
       file: doc.uri.fsPath,
       line,
       column,
       language: doc.languageId,     // 'python', 'typescriptreact', ...
-      severity: 'error',
+      severity: d.severity === vscode.DiagnosticSeverity.Error ? 'error' : 'warning',
       source: d.source,             // 'Pylance', 'ts(2339)', ...
     });
   };
@@ -75,16 +81,20 @@ export function connectToCore(post: (message: any) => void): Connection {
 
     const errors = vscode.languages
       .getDiagnostics(uri)
-      .filter((d) => d.severity === vscode.DiagnosticSeverity.Error);
+      // Warnings too: Pylance reports misspelled names (`pritn`) as warnings, the classic beginner mistake.
+      .filter((d) => d.severity <= vscode.DiagnosticSeverity.Warning);
 
-    const previous = reported.get(uri.toString()) ?? new Set<string>();
-    const current = new Set<string>();
+    const previous = reported.get(uri.toString()) ?? new Map<string, string>();
+    const current = new Map<string, string>();
 
     for (const d of errors) {
       const key = keyFor(d);
-      current.add(key);
+      current.set(key, idFor(doc, d));
       if (!previous.has(key)) sendDiagnostic(doc, d);
     }
+
+    // Errors that are gone (fixed, or a half-typed word that got finished): drop their cards.
+    for (const [key, id] of previous) if (!current.has(key)) post({ type: 'resolve', id });
 
     reported.set(uri.toString(), current);
   };
@@ -112,8 +122,10 @@ export function connectToCore(post: (message: any) => void): Connection {
       }
 
       // The core has already built finished renderer messages. Forward them.
+      // Skip answers for errors that were fixed while the core was thinking.
       if (msg?.type === 'explanation' && Array.isArray(msg.panel)) {
-        for (const m of msg.panel) post(m);
+        const live = active();
+        for (const m of msg.panel) if (live.has(m.id)) post(m);
       }
     });
 
@@ -126,12 +138,29 @@ export function connectToCore(post: (message: any) => void): Connection {
     ws.on('error', () => { /* 'close' always follows, which triggers the retry */ });
   };
 
+  // Files the user is typing in, each with a timer that checks it once they stop.
+  const typing = new Map<string, ReturnType<typeof setTimeout>>();
+
+  const settle = (uri: vscode.Uri) => {
+    clearTimeout(typing.get(uri.toString()));
+    typing.delete(uri.toString());
+    syncUri(uri);
+  };
+
   const subscriptions = [
+    vscode.workspace.onDidChangeTextDocument((e) => {
+      if (e.contentChanges.length === 0) return;
+      const key = e.document.uri.toString();
+      clearTimeout(typing.get(key));
+      typing.set(key, setTimeout(() => settle(e.document.uri), TYPING_IDLE_MS));
+    }),
     vscode.workspace.onDidSaveTextDocument((doc) => {
       sendRaw({ type: 'file.saved', file: doc.uri.fsPath });
+      settle(doc.uri); // saving means "I'm done typing"
     }),
     vscode.languages.onDidChangeDiagnostics((e) => {
-      for (const uri of e.uris) syncUri(uri);
+      // Mid-typing files wait for their timer; everything else syncs right away.
+      for (const uri of e.uris) if (!typing.has(uri.toString())) syncUri(uri);
     }),
   ];
 
@@ -141,6 +170,7 @@ export function connectToCore(post: (message: any) => void): Connection {
     stop() {
       stopped = true;
       clearTimeout(retryTimer);
+      for (const t of typing.values()) clearTimeout(t);
       for (const s of subscriptions) s.dispose();
       ws?.close();
     },
