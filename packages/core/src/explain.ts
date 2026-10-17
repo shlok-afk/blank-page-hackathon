@@ -1,6 +1,6 @@
 import { Explanation } from '../../protocol/src/index';
 import { lookupInLibrary } from './library/index';
-import { cacheGet, cacheSet, cacheKey, Cached } from './cache';
+import { cacheGet, cacheSet, cacheKey } from './cache';
 import { explainUnknown } from './classify';
 
 export type ExplainInput = {
@@ -17,18 +17,18 @@ export async function explain(
 ): Promise<Explanation> {
   const key = cacheKey(error.message, error.language);
 
-  // 1. Have we seen this exact error before?
+  // 1. Is it in our library? Checked before the cache so library edits
+  //    (new snippets, better wording) show up without clearing the cache.
+  const entry = lookupInLibrary(error.message, error.language);
+  if (entry) {
+    const { headline, cause, fix, snippet } = entry;
+    return { headline, cause, fix, snippet, relatedSave: relatedSave ?? null };
+  }
+
+  // 2. Have we seen this exact error before?
   const cached = cacheGet(key);
   if (cached) {
     return { ...cached, relatedSave: relatedSave ?? null };
-  }
-
-  // 2. Is it in our library?
-  const entry = lookupInLibrary(error.message, error.language);
-  if (entry) {
-    const result: Cached = { headline: entry.headline, cause: entry.cause, fix: entry.fix };
-    cacheSet(key, result);
-    return { ...result, relatedSave: relatedSave ?? null };
   }
 
   // 3. Unknown error - classify it with rules

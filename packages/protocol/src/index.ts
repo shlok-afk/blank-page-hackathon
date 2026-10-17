@@ -31,6 +31,7 @@ export type Explanation = {
   headline: string;              // one-line plain-English summary
   cause: string;                 // why it happened
   fix: string;                   // what to change
+  snippet?: string;              // copy-pasteable code for the fix
   relatedSave: string | null;    // "You saved auth.py 12 seconds before this error appeared.", or null
 };
 

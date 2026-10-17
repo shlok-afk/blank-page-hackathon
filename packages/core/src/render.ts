@@ -42,12 +42,15 @@ function errorTypeOf(message: string): string {
   return m ? m[1] : '';
 }
 
-export function toMarkdown(e: Explanation): string {
+export function toMarkdown(e: Explanation, language = ''): string {
   const parts: string[] = [];
 
   parts.push('**' + e.headline + '**');
   parts.push(e.cause);
   parts.push('**Fix:** ' + e.fix);
+
+  // A fenced block gets a Copy button in the panel.
+  if (e.snippet) parts.push('```' + language.toLowerCase() + '\n' + e.snippet + '\n```');
 
   // The save correlation is the whole point of the product - give it
   // its own paragraph so it is never buried.
@@ -65,7 +68,7 @@ export function toDisplay(input: RenderInput, explanation: Explanation): Display
     language: languageName(input.language),
     location,
     source: input.source || errorTypeOf(input.message) || '',
-    text: toMarkdown(explanation),
+    text: toMarkdown(explanation, input.language),
   };
 }
 

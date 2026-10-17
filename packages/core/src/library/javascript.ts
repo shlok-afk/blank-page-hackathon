@@ -16,6 +16,7 @@ export const javascriptErrors: LibraryEntry[] = [
     headline: 'You used a property of something that is undefined or null',
     cause: "The object you're reaching into doesn't exist yet.",
     fix: 'Find what is supposed to create it and confirm that ran. Optional chaining (obj?.prop) stops the crash.',
+    snippet: 'const name = user?.profile?.name;',
   },
   {
     id: 'js-not-defined',
@@ -56,6 +57,7 @@ export const javascriptErrors: LibraryEntry[] = [
     headline: 'That port is already being used',
     cause: 'Another copy of your program is still running and holding the port.',
     fix: 'Stop the old process (Ctrl+C) before starting a new one, or pick a different port.',
+    snippet: 'npx kill-port 3000',
   },
   {
     id: 'js-stack-overflow',
@@ -72,6 +74,7 @@ export const javascriptErrors: LibraryEntry[] = [
     headline: "You tried to parse text that isn't valid JSON",
     cause: 'The string is empty or cut off - often a failed request returned nothing.',
     fix: 'Print the raw string before parsing it.',
+    snippet: 'if (!res.ok) throw new Error(`HTTP ${res.status}`);\nconst data = await res.json();',
   },
   {
     id: 'js-const-reassign',
@@ -80,6 +83,7 @@ export const javascriptErrors: LibraryEntry[] = [
     headline: 'You tried to change a value declared with const',
     cause: "const means the variable can't be reassigned.",
     fix: 'Use let if it needs to change. const is fine for values you only read.',
+    snippet: 'let count = 0;\ncount += 1;',
   },
 ];
 
@@ -99,6 +103,7 @@ export const typescriptErrors: LibraryEntry[] = [
     headline: 'TypeScript is warning that this value might not exist yet',
     cause: 'The value could be undefined at this point, and TypeScript wants you to handle that.',
     fix: 'Check it first: `if (value) { ... }` - or use a default with `value ?? fallback`.',
+    snippet: 'const safe = value ?? fallback;',
   },
   {
     id: 'ts-cannot-find-name',
