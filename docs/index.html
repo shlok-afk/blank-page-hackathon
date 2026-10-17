@@ -1,0 +1,2165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Squiggle Playground</title>
+<meta name="description" content="Try Squiggle: plain-English explanations and copy-paste fixes for the red squiggles in VS Code.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* The extension's real panel stylesheet, unchanged. It reads --vscode-* variables, defined below. */
+/* Every color reads VS Code's theme variables, so the panel follows the user's chosen
+   theme (and live theme switches) automatically. Fallbacks will apply to editors other than VS Code. */
+:root {
+  --fg: var(--vscode-foreground, #cccccc);
+  --muted: var(--vscode-descriptionForeground, #9d9d9d);
+  --border: var(--vscode-widget-border, var(--vscode-panel-border, #80808040));
+  --hc-border: var(--vscode-contrastBorder, transparent);
+  --accent: var(--vscode-focusBorder, #0078d4);
+  /* terminal.background has no default in VS Code (the terminal uses the panel's), so mirror that. */
+  --term-bg: var(--vscode-terminal-background, var(--vscode-panel-background, #181818));
+  --term-fg: var(--vscode-terminal-foreground, #cccccc);
+  --term-red: var(--vscode-terminal-ansiRed, #f14c4c);
+  --code-bg: var(--vscode-textCodeBlock-background, #0a0a0a66);
+  --inline-code-fg: var(--vscode-textPreformat-foreground, #d7ba7d);
+  --inline-code-bg: var(--vscode-textPreformat-background, #ffffff1a);
+  --cursor: var(--vscode-editorCursor-foreground, #aeafad);
+  --font: var(--vscode-font-family, system-ui, sans-serif);
+  --font-size: var(--vscode-font-size, 13px);
+  --mono: var(--vscode-editor-font-family, ui-monospace, Menlo, Consolas, monospace);
+  --mono-size: var(--vscode-editor-font-size, 13px);
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+body {
+  margin: 0;
+  padding: 14px 16px;
+  color: var(--fg);
+  background: var(--vscode-editor-background, #1e1e1e);
+  font-family: var(--font);
+  font-size: var(--font-size);
+  line-height: 1.55;
+}
+/* Inside VS Code let the panel/sidebar background show through. */
+body[class*='vscode-'] { background: transparent; }
+
+/* Soft ambient glow behind everything, in theme colors, so the glass cards have something to frost. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 40% at 0% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%),
+    radial-gradient(50% 35% at 100% 30%, color-mix(in srgb, var(--term-red) 9%, transparent), transparent 70%);
+}
+
+#list { display: flex; flex-direction: column; gap: 14px; }
+#list:not(:empty) + .empty { display: none; }
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+  margin: 48px auto 0;
+  max-width: 34ch;
+  color: var(--muted);
+}
+.empty svg {
+  width: 40px;
+  height: 40px;
+  color: var(--accent);
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 60%, transparent));
+  animation: float 4s ease-in-out infinite;
+}
+.empty strong { color: var(--fg); font-size: 1.1em; }
+.empty p { margin: 0; }
+.empty .hint { margin-top: 8px; font-size: 0.9em; }
+.link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--vscode-textLink-foreground, var(--accent));
+  cursor: pointer;
+  text-decoration: underline;
+}
+.link:hover { color: var(--vscode-textLink-activeForeground, var(--accent)); }
+.link:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+
+/* "Liquid glass": a translucent wash of the theme's text color (light on dark themes,
+   dark on light ones), a bright top edge, and a soft shadow. */
+.card {
+  --glass: var(--fg);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--glass) 9%, transparent),
+    color-mix(in srgb, var(--glass) 3%, transparent)
+  );
+  backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid color-mix(in srgb, var(--glass) 12%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--glass) 20%, transparent),
+    0 6px 20px rgb(0 0 0 / 0.15);
+  outline: 1px solid var(--hc-border);
+  border-radius: 14px;
+  padding: 12px 14px 14px;
+  max-width: 80ch;
+  animation: rise 0.45s var(--ease) backwards;
+  transition: border-color 0.2s, transform 0.2s var(--ease), box-shadow 0.2s;
+}
+.card:hover {
+  border-color: color-mix(in srgb, var(--glass) 22%, transparent);
+  transform: translateY(-1px);
+}
+/* While the AI is writing, the card breathes with the theme's accent color. */
+.card.streaming {
+  animation: rise 0.45s var(--ease) backwards, glow 1.8s ease-in-out infinite alternate;
+}
+
+header { margin-bottom: 10px; }
+/* The error exactly as the terminal would print it. */
+.title {
+  font-family: var(--mono);
+  font-size: var(--mono-size);
+  color: var(--term-fg);
+  /* Soft tint of the theme's own terminal red, so it reads as "error" in any theme. */
+  background: color-mix(in srgb, var(--term-red) 14%, var(--term-bg));
+  border: 1px solid color-mix(in srgb, var(--term-red) 35%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--term-fg) 8%, transparent);
+  border-radius: 8px;
+  padding: 8px 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.title .err { color: var(--term-red); font-weight: 600; }
+
+/* "Language: X   File: Y" — labels in the text color, values in terminal palette colors. */
+.meta { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; color: var(--fg); font-size: 0.9em; }
+.meta span:has(> :empty) { display: none; }
+.lang, .loc, .src { font-family: var(--mono); font-weight: 600; }
+.src { color: var(--fg); }
+.lang { color: var(--vscode-terminal-ansiMagenta, #bc3fbc); }
+.lang[data-lang='python'] { color: var(--vscode-terminal-ansiGreen, #0dbc79); }
+.lang:is([data-lang^='typescript'], [data-lang='tsx']) { color: var(--vscode-terminal-ansiBlue, #2472c8); }
+.lang:is([data-lang^='javascript'], [data-lang='jsx']) { color: var(--vscode-terminal-ansiYellow, #e5e510); }
+.loc { color: var(--vscode-terminal-ansiCyan, #11a8cd); }
+
+.body > :first-child { margin-top: 0; }
+.body > :last-child { margin-bottom: 0; }
+.body p, .body ul, .body ol { margin: 0.6em 0; }
+.body ul, .body ol { padding-left: 1.4em; }
+.body li::marker { color: var(--accent); }
+.body h3 { font-size: 1em; margin: 0.8em 0 0.3em; }
+.body strong { color: var(--vscode-textLink-foreground, var(--fg)); font-weight: 600; }
+
+.body code {
+  font-family: var(--mono);
+  font-size: 0.95em;
+  color: var(--inline-code-fg);
+  background: var(--inline-code-bg);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+.body pre {
+  position: relative;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 0.8em 0;
+  overflow-x: auto;
+}
+.body pre code {
+  font-size: var(--mono-size);
+  color: inherit;
+  background: none;
+  padding: 0;
+  white-space: pre;
+}
+.body pre[data-lang]:not([data-lang=''])::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  font-family: var(--font);
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  transition: opacity 0.15s;
+}
+
+/* Copy button: swaps in for the language label on hover/focus. */
+.copy {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  font: 600 0.75em var(--font);
+  color: var(--vscode-button-foreground, #fff);
+  background: var(--vscode-button-background, #0078d4);
+  border: 0;
+  border-radius: 5px;
+  padding: 2px 8px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.15s var(--ease);
+}
+.body pre:hover .copy, .copy:focus-visible, .copy.done { opacity: 1; }
+.body pre:hover::before, .body pre:focus-within::before { opacity: 0; }
+.copy:hover { background: var(--vscode-button-hoverBackground, #026ec1); }
+.copy:active { transform: scale(0.95); }
+.copy:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+
+/* Blinking cursor at the end of text while the AI is still writing. */
+.streaming .body > :last-child::after,
+.streaming .body > pre:last-child code::after,
+.streaming .body > :is(ul, ol):last-child > li:last-child::after {
+  content: '▍';
+  color: var(--cursor);
+  animation: blink 1s steps(1) infinite;
+}
+.streaming .body > :is(pre, ul, ol):last-child::after { content: none; }
+/* Shimmering "Thinking…" before the first words arrive. */
+.streaming .body:empty::after {
+  content: 'Thinking…';
+  color: transparent;
+  background: linear-gradient(90deg, var(--muted) 30%, var(--fg) 50%, var(--muted) 70%) 0 0 / 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shimmer 1.4s linear infinite;
+}
+
+.card.leaving { animation: leave 0.3s ease-in forwards; pointer-events: none; }
+/* Pop: a quick swell, then shrink away like a bursting bubble. */
+@keyframes leave {
+  35% { opacity: 1; transform: scale(1.04); }
+  to { opacity: 0; transform: scale(0.6); }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
+@keyframes glow {
+  from { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass) 20%, transparent), 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent), 0 6px 20px rgb(0 0 0 / 0.15); }
+  to { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass) 20%, transparent), 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent), 0 0 22px color-mix(in srgb, var(--accent) 30%, transparent); }
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes float { 50% { transform: translateY(-4px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+
+/* Layout: a VS Code window (title bar / activity bar + editor + Squiggle sidebar / status bar); the sidebar drops under the editor on phones. */
+:root {
+  --page: #e4e7ec;
+  --chrome: #f8f8f8;
+  --editor: #ffffff;
+  --text: #3b3b3b;
+  --dim: #6e7681;
+  --rule: #e5e5e5;
+  --blue: #0078d4;
+  --sq-err: #e51400;
+  --sq-warn: #bf8803;
+  --tok-kw: #af00db;
+  --tok-def: #0000ff;
+  --tok-str: #a31515;
+  --tok-num: #098658;
+  --tok-fn: #795e26;
+  --tok-var: #001080;
+  --tok-com: #008000;
+  --ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Ubuntu, sans-serif;
+  --code: 'JetBrains Mono', Menlo, Consolas, 'Courier New', monospace;
+
+  --vscode-font-family: var(--ui);
+  --vscode-font-size: 13px;
+  --vscode-editor-font-family: var(--code);
+  --vscode-editor-font-size: 12.5px;
+  --vscode-foreground: var(--text);
+  --vscode-descriptionForeground: var(--dim);
+  --vscode-widget-border: var(--rule);
+  --vscode-focusBorder: var(--blue);
+  --vscode-terminal-background: #ffffff;
+  --vscode-terminal-foreground: var(--text);
+  --vscode-terminal-ansiRed: #cd3131;
+  --vscode-terminal-ansiGreen: #00bc00;
+  --vscode-terminal-ansiBlue: #0451a5;
+  --vscode-terminal-ansiYellow: #949800;
+  --vscode-terminal-ansiMagenta: #bc05bc;
+  --vscode-terminal-ansiCyan: #0598bc;
+  --vscode-textCodeBlock-background: #f2f2f2;
+  --vscode-textPreformat-foreground: #a31515;
+  --vscode-textPreformat-background: #0000000f;
+  --vscode-editorCursor-foreground: #000000;
+  --vscode-button-background: var(--blue);
+  --vscode-button-foreground: #ffffff;
+  --vscode-button-hoverBackground: #026ec1;
+  --vscode-textLink-foreground: #005fb8;
+  --vscode-textLink-activeForeground: #004a8f;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #0c0d10; --chrome: #181818; --editor: #1f1f1f; --text: #cccccc; --dim: #858585; --rule: #2b2b2b;
+    --sq-err: #f14c4c; --sq-warn: #cca700;
+    --tok-kw: #c586c0; --tok-def: #569cd6; --tok-str: #ce9178; --tok-num: #b5cea8; --tok-fn: #dcdcaa; --tok-var: #9cdcfe; --tok-com: #6a9955;
+    --vscode-terminal-background: #181818; --vscode-terminal-ansiRed: #f14c4c; --vscode-terminal-ansiGreen: #23d18b;
+    --vscode-terminal-ansiBlue: #3b8eea; --vscode-terminal-ansiYellow: #e5e510; --vscode-terminal-ansiMagenta: #d670d6;
+    --vscode-terminal-ansiCyan: #29b8db; --vscode-textCodeBlock-background: #0a0a0a66; --vscode-textPreformat-foreground: #d7ba7d;
+    --vscode-textPreformat-background: #ffffff1a; --vscode-editorCursor-foreground: #aeafad;
+    --vscode-textLink-foreground: #4daafc; --vscode-textLink-activeForeground: #7cc2ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #0c0d10; --chrome: #181818; --editor: #1f1f1f; --text: #cccccc; --dim: #858585; --rule: #2b2b2b;
+  --sq-err: #f14c4c; --sq-warn: #cca700;
+  --tok-kw: #c586c0; --tok-def: #569cd6; --tok-str: #ce9178; --tok-num: #b5cea8; --tok-fn: #dcdcaa; --tok-var: #9cdcfe; --tok-com: #6a9955;
+  --vscode-terminal-background: #181818; --vscode-terminal-ansiRed: #f14c4c; --vscode-terminal-ansiGreen: #23d18b;
+  --vscode-terminal-ansiBlue: #3b8eea; --vscode-terminal-ansiYellow: #e5e510; --vscode-terminal-ansiMagenta: #d670d6;
+  --vscode-terminal-ansiCyan: #29b8db; --vscode-textCodeBlock-background: #0a0a0a66; --vscode-textPreformat-foreground: #d7ba7d;
+  --vscode-textPreformat-background: #ffffff1a; --vscode-editorCursor-foreground: #aeafad;
+  --vscode-textLink-foreground: #4daafc; --vscode-textLink-activeForeground: #7cc2ff;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--page);
+  color: var(--text);
+  font: 13px/1.5 var(--ui);
+  padding: 0;
+  padding-block: 28px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before { display: none; } /* the panel's ambient glow is for VS Code's sidebar, not this page */
+
+.intro { max-width: 1240px; margin: 0 auto 16px; display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; }
+h1 { margin: 0; font-size: 1.35rem; font-weight: 600; letter-spacing: -0.01em; }
+.intro p { margin: 0; color: var(--dim); }
+.intro code { font-family: var(--code); font-size: 0.95em; color: var(--text); }
+
+/* ---------- the window ---------- */
+.win {
+  max-width: 1240px;
+  margin: 0 auto;
+  height: min(680px, 86vh);
+  display: grid;
+  grid-template-rows: 32px minmax(0, 1fr) 22px;
+  background: var(--editor);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgb(0 0 0 / 0.18);
+}
+.titlebar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 12px;
+  background: var(--chrome);
+  border-bottom: 1px solid var(--rule);
+  font-size: 12px;
+  color: var(--dim);
+}
+.dots { display: flex; gap: 8px; }
+.dots i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+.dots i:nth-child(2) { background: #febc2e; }
+.dots i:nth-child(3) { background: #28c840; }
+.titlebar .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.workbench { display: grid; grid-template-columns: 48px minmax(0, 1fr) minmax(300px, 38%); min-height: 0; }
+
+.activity { background: var(--chrome); border-right: 1px solid var(--rule); display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 6px; }
+.activity span { width: 48px; height: 44px; display: grid; place-items: center; color: var(--dim); }
+.activity span.on { color: var(--text); box-shadow: inset 2px 0 0 var(--blue); }
+.activity svg { width: 24px; height: 24px; }
+
+.editor { display: grid; grid-template-rows: 35px 22px minmax(0, 1fr); min-width: 0; min-height: 0; }
+.tabs { display: flex; align-items: stretch; justify-content: space-between; background: var(--chrome); border-bottom: 1px solid var(--rule); }
+.tab {
+  display: flex; align-items: center; gap: 6px; padding: 0 14px;
+  background: var(--editor); border-right: 1px solid var(--rule); box-shadow: inset 0 1px 0 var(--blue);
+  font-size: 13px; margin-bottom: -1px;
+}
+.tab .py { font: 600 10px var(--code); color: #3572a5; }
+.tab.has-err .fname { color: var(--sq-err); }
+.tab.has-warn:not(.has-err) .fname { color: var(--sq-warn); }
+.tab .count { font-size: 11px; color: inherit; }
+.tab-actions { display: flex; align-items: center; padding: 0 8px; }
+.tool {
+  font: 12px var(--ui); color: var(--dim); background: none; border: 1px solid transparent;
+  border-radius: 5px; padding: 3px 8px; cursor: pointer;
+}
+.tool:hover { color: var(--text); background: color-mix(in srgb, var(--text) 8%, transparent); }
+.tool:focus-visible { outline: 1px solid var(--blue); }
+.crumbs { display: flex; align-items: center; gap: 6px; padding: 0 16px; font-size: 12px; color: var(--dim); background: var(--editor); }
+
+/* Code: a transparent textarea over a highlighted <pre>, in one grid cell so they size together. */
+.scroller { overflow: auto; background: var(--editor); display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; }
+.gutter, .hl, #code {
+  font: 12.5px/20px var(--code);
+  font-variant-ligatures: none;
+  tab-size: 4;
+  padding-block: 6px 40px;
+  margin: 0;
+}
+.gutter {
+  position: sticky; left: 0; z-index: 2;
+  background: var(--editor);
+  color: var(--dim);
+  text-align: right;
+  padding-left: 12px;
+  padding-right: 18px;
+  user-select: none;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+}
+.gutter b { font-weight: 400; color: var(--text); }
+.stack { display: grid; min-width: max-content; }
+.stack > * { grid-area: 1 / 1; }
+.hl { white-space: pre; color: var(--tok-var); padding-right: 24px; pointer-events: none; }
+#code {
+  border: 0; outline: 0; resize: none; overflow: hidden;
+  background: transparent; color: transparent; caret-color: var(--vscode-editorCursor-foreground);
+  white-space: pre; padding-left: 0; padding-right: 24px; width: 100%; box-sizing: border-box;
+}
+#code::selection { background: color-mix(in srgb, var(--blue) 30%, transparent); color: transparent; }
+.kw { color: var(--tok-kw); } .def { color: var(--tok-def); } .str { color: var(--tok-str); }
+.num { color: var(--tok-num); } .fn { color: var(--tok-fn); } .com { color: var(--tok-com); } .op { color: var(--text); }
+.sq-error { text-decoration: underline wavy var(--sq-err); text-decoration-skip-ink: none; text-underline-offset: 3px; }
+.sq-warning { text-decoration: underline wavy var(--sq-warn); text-decoration-skip-ink: none; text-underline-offset: 3px; }
+/* A squiggle at the end of a line (missing colon) needs a character to sit under. */
+.eol { display: inline-block; width: 1ch; }
+
+/* ---------- Squiggle sidebar: the real panel ---------- */
+.side { background: var(--chrome); border-left: 1px solid var(--rule); display: grid; grid-template-rows: 35px minmax(0, 1fr); min-width: 0; min-height: 0; }
+.side-head { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 16px; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--dim); }
+.side-head b { font-weight: 600; color: var(--text); }
+.side-body { overflow: auto; padding: 12px; position: relative; isolation: isolate; }
+.side .card { --glass: var(--text); }
+.side .empty { margin: 56px auto 0; }
+
+.statusbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 0 10px; background: var(--blue); color: #ffffff; font-size: 12px; white-space: nowrap; overflow: hidden; }
+.statusbar > div { display: flex; gap: 14px; align-items: center; min-width: 0; }
+.statusbar svg { width: 14px; height: 14px; vertical-align: -2px; }
+
+.foot { max-width: 1240px; margin: 14px auto 0; color: var(--dim); font-size: 12.5px; }
+.foot a { color: var(--vscode-textLink-foreground); }
+
+@media (max-width: 760px) {
+  .win { height: auto; grid-template-rows: 32px auto 22px; }
+  .workbench { grid-template-columns: minmax(0, 1fr); }
+  .activity { display: none; }
+  .editor { grid-template-rows: 35px 22px 360px; }
+  .side { border-left: 0; border-top: 1px solid var(--rule); grid-template-rows: 35px auto; }
+  .side-body { max-height: none; }
+  .titlebar .name { font-size: 11px; }
+  .hide-sm { display: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="intro">
+  <h1>Squiggle</h1>
+  <p>Plain-English explanations for the red squiggles in VS Code. Fix a line below, for example change <code>pritn</code> to <code>print</code>, and the explanations update when you stop typing.</p>
+</div>
+
+<div class="win">
+  <div class="titlebar">
+    <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="name">dice_game.py — my-first-project — Visual Studio Code</div>
+    <div></div>
+  </div>
+
+  <div class="workbench">
+    <nav class="activity" aria-hidden="true">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg></span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5.5 5.5"/></svg></span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 7v10M18 10c0 4-6 3-12 7"/></svg></span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="7.5" height="7.5"/><rect x="3" y="13.5" width="7.5" height="7.5"/><rect x="13.5" y="13.5" width="7.5" height="7.5"/><rect x="14.5" y="2" width="7" height="7" transform="rotate(12 18 5.5)"/></svg></span>
+      <span class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></span>
+    </nav>
+
+    <section class="editor" aria-label="Editor">
+      <div class="tabs">
+        <div class="tab" id="tab"><span class="py">py</span><span class="fname">dice_game.py</span><span class="count" id="tab-count"></span></div>
+        <div class="tab-actions"><button class="tool" type="button" id="reset">Reset example</button></div>
+      </div>
+      <div class="crumbs">my-first-project <span aria-hidden="true">›</span> dice_game.py</div>
+      <div class="scroller" id="scroller">
+        <div class="gutter" id="gutter" aria-hidden="true"></div>
+        <div class="stack">
+          <pre class="hl" id="hl" aria-hidden="true"></pre>
+          <textarea id="code" wrap="off" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="dice_game.py, Python code"></textarea>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side" aria-label="Squiggle explanations">
+      <div class="side-head"><span><b>Squiggle</b>: Explanations</span><button class="tool" type="button" id="clear">Mark all fixed</button></div>
+      <div class="side-body">
+        <main id="list" aria-live="polite"></main>
+        <div class="empty">
+          <strong>All clear</strong>
+          <p>When an error shows up in your code, a plain-language explanation will appear here, with a fix you can copy.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="statusbar">
+    <div>
+      <span id="st-problems"></span>
+    </div>
+    <div>
+      <span id="st-pos">Ln 1, Col 1</span>
+      <span class="hide-sm">Spaces: 4</span>
+      <span class="hide-sm">UTF-8</span>
+      <span>Python</span>
+      <span>✓ Squiggle</span>
+    </div>
+  </footer>
+</div>
+
+<p class="foot">Squiggles here come from a small checker built into this page; in VS Code they come from Pylance and TypeScript. The explanations and suggested fixes run the extension's real code. <a href="https://github.com/shlok-afk/blank-page-hackathon">Source on GitHub</a></p>
+
+<script>
+var Explainer = (() => {
+  var __defProp = Object.defineProperty;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, { get: all[name], enumerable: true });
+  };
+  var __copyProps = (to, from, except, desc) => {
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (let key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(to, key) && key !== except)
+          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+    }
+    return to;
+  };
+  var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+  // <stdin>
+  var stdin_exports = {};
+  __export(stdin_exports, {
+    explainUnknown: () => explainUnknown,
+    lookupInLibrary: () => lookupInLibrary,
+    suggestFix: () => suggestFix
+  });
+
+  // packages/core/src/library/python.ts
+  var pythonErrors = [
+    {
+      id: "py-none-subscript",
+      language: "python",
+      pattern: /'NoneType' object is not subscriptable|Object of type 'None' is not subscriptable/,
+      // runtime | Pylance
+      headline: "You're indexing something that is None",
+      cause: "The variable used with [ ] actually holds None, not a list or dict.",
+      plain: `None is Python's word for "nothing here". Square brackets like data[0] mean "give me item 0", but you can't take an item out of nothing.`,
+      fix: "Print that variable on the line before. Whatever sets it either never ran or returned nothing.",
+      snippet: 'if data is None:\n    raise ValueError("data was never set")\nvalue = data[0]'
+    },
+    {
+      id: "py-none-iterable",
+      language: "python",
+      pattern: /'NoneType' object is not iterable|Object of type 'None' cannot be used as iterable/,
+      headline: "You're looping over something that is None",
+      cause: "A function you expected to return a list returned None - often it forgot the `return`.",
+      plain: `None is Python's word for "nothing here". A for loop walks through items one by one, and None has no items to walk through.`,
+      fix: "Check the function that produced it ends with `return`. Fall back to an empty list if None is valid.",
+      snippet: "for item in items or []:\n    ..."
+    },
+    {
+      id: "py-none-attribute",
+      language: "python",
+      pattern: /'NoneType' object has no attribute|Cannot access attribute .* for class 'None'/,
+      headline: "You're calling a method on something that is None",
+      cause: "You expected an object, but the variable is None. A classic: `x = x.sort()` - sort() returns None.",
+      plain: `None is Python's word for "nothing here". The dot in x.something asks the value for one of its tools, and None has none of them.`,
+      fix: "Find where the variable is assigned - something returned None when you expected a value.",
+      snippet: "if obj is not None:\n    obj.method()"
+    },
+    {
+      id: "py-none-len",
+      language: "python",
+      pattern: /object of type 'NoneType' has no len\(\)/,
+      headline: "You asked for the length of something that is None",
+      cause: "len() got None instead of a list or string - a function you expected to return one returned nothing.",
+      plain: `None is Python's word for "nothing here". len() counts the items in a list or the letters in a string, and there is nothing to count.`,
+      fix: "Find where the variable is assigned and make sure that function ends with `return`.",
+      snippet: "count = len(items) if items is not None else 0"
+    },
+    {
+      id: "py-not-subscriptable",
+      language: "python",
+      pattern: /object is not subscriptable|'__getitem__' method not defined on type/,
+      // runtime | Pylance
+      headline: "You used [ ] on something that isn't a list or dict",
+      cause: "Only collections can be indexed. 'function' here usually means you forgot the ( ) when calling it.",
+      plain: 'Square brackets like x[0] mean "give me item 0". Only things that hold several items, like lists, strings and dictionaries, have items to hand out.',
+      fix: "Print type() of the value. If it is a function, call it first: f()[0], not f[0].",
+      snippet: "print(type(value))"
+    },
+    {
+      id: "py-no-len",
+      language: "python",
+      pattern: /object of type '\w+' has no len\(\)/,
+      headline: "You asked for the length of something that has no length",
+      cause: "len() works on lists, strings and dicts - not on numbers.",
+      plain: "len() counts how many items or letters something has. A single number like 42 isn't a collection, so it has nothing to count.",
+      fix: "For the number of digits, convert to text first.",
+      snippet: "digits = len(str(n))"
+    },
+    {
+      id: "py-unbound-local",
+      language: "python",
+      pattern: /UnboundLocalError|referenced before assignment|where it is not associated with a value|is possibly unbound/,
+      headline: "You used a variable before giving it a value",
+      cause: "The variable is only assigned inside an if or loop that did not run - or you assign to a global inside a function.",
+      plain: "A variable is a named box that holds a value. Python found the name, but the line that puts a value in the box never ran before this one.",
+      fix: "Give it a starting value before the if/loop. If it is meant to be a global, declare it with `global`.",
+      snippet: "result = None  # set a default first\nif condition:\n    result = compute()"
+    },
+    {
+      id: "py-name-not-defined",
+      language: "python",
+      pattern: /NameError: name|is not defined/,
+      // runtime | Pylance wording
+      headline: "You used a name that doesn't exist yet",
+      cause: "You misspelled a variable or function, or used it before defining it.",
+      plain: "Python only knows names that have been created, like variables you set with = or functions you made with def. To Python, this name is brand new, so it has no idea what it means.",
+      fix: "Check the spelling, and make sure the line that creates it runs before this one."
+    },
+    {
+      id: "py-tab-error",
+      language: "python",
+      pattern: /TabError|inconsistent use of tabs/,
+      headline: "You mixed tabs and spaces",
+      cause: "Some lines in this block are indented with tabs and others with spaces. They look the same but Python sees them differently.",
+      plain: "Python uses the space at the start of a line to tell which lines belong together. A tab and a few spaces can look identical on screen, but Python counts them differently.",
+      fix: 'Run "Convert Indentation to Spaces" from the command palette, then re-save.'
+    },
+    {
+      id: "py-indentation",
+      language: "python",
+      pattern: /IndentationError|[Ee]xpected (an )?indented block|[Uu]nindent not expected/,
+      headline: "Your indentation is inconsistent",
+      cause: "Python uses indentation to group code, and this line doesn't line up with its block.",
+      plain: "Indentation is the space at the start of a line. In Python it isn't just for looks: it decides which lines are inside an if, a loop or a function. This line has more or less space than Python expected.",
+      fix: "Select the block and re-indent it. An empty block needs `pass`. Never mix tabs and spaces.",
+      snippet: "def todo():\n    pass  # placeholder so the block is not empty"
+    },
+    {
+      id: "py-missing-colon",
+      language: "python",
+      pattern: /expected ':'/i,
+      // runtime | Pylance (`Expected ":"`)
+      headline: "You forgot a colon",
+      cause: "Lines that start a block - if, for, while, def, class - must end with a colon.",
+      plain: 'In Python, a colon at the end of a line means "a block of code starts on the next line". Every if, for, while, def and class line needs one.',
+      fix: "Add `:` at the end of the line.",
+      snippet: "if x > 0:\n    print(x)"
+    },
+    {
+      id: "py-empty-import",
+      language: "python",
+      pattern: /Expected module name|Expected one or more symbol names after 'import'/,
+      // Pylance
+      headline: "Your import line is missing what to import",
+      cause: "The line says `import` (or `from x import`) but does not name anything after it.",
+      plain: "An import line pulls in code from somewhere else so you can use it. This one stops before saying what to bring in.",
+      fix: "Finish the line with the module or name you want, or delete it if you do not need it.",
+      snippet: "import math\nfrom random import randint"
+    },
+    {
+      id: "py-unterminated-string",
+      language: "python",
+      pattern: /unterminated string literal|EOL while scanning string literal|String literal is unterminated/,
+      headline: "A string is missing its closing quote",
+      cause: "Python reached the end of the line while still inside a string.",
+      plain: `A string is a piece of text inside quotes, like "hello". Python saw the opening quote but never found the closing one, so it doesn't know where your text ends.`,
+      fix: "Add the closing quote. If the text itself contains a quote, use the other kind on the outside.",
+      snippet: `msg = "it's fine"`
+    },
+    {
+      id: "py-unclosed-bracket",
+      language: "python",
+      pattern: /'[(\[{]' was (never|not) closed|unexpected EOF while parsing/,
+      // runtime | Pylance
+      headline: "A bracket was opened and never closed",
+      cause: "Python reached the end of the file still waiting for a ), ] or }.",
+      plain: "Brackets come in pairs: every ( needs a ), every [ needs a ], and every { needs a }. One of them is still open, so Python kept reading and ran out of code.",
+      fix: "Look at the reported line and count the brackets. The error is usually earlier than where Python complains."
+    },
+    {
+      id: "py-smart-quote",
+      language: "python",
+      pattern: /invalid character .* \(U\+(201[CDE89]|2018)\)/,
+      headline: 'Your code contains curly "smart" quotes',
+      cause: "Code copied from a document, web page or chat often has curly quotes that Python does not accept.",
+      plain: `There are two kinds of quote marks: straight ones (" and ') that code uses, and curly ones (\u201C \u201D) that word processors use. They look alike, but Python only understands the straight kind.`,
+      fix: "Retype the quotes on that line as plain straight quotes."
+    },
+    {
+      id: "py-assign-vs-compare",
+      language: "python",
+      pattern: /Maybe you meant '==' or ':='|invalid syntax\. Maybe you meant '=='/,
+      headline: "You used = where you meant ==",
+      cause: "A single = stores a value. Comparing two values needs ==.",
+      plain: 'In Python, = means "put this value in the box" and == means "are these two equal?". An if needs a question, so it needs ==.',
+      fix: "Use == inside if and while conditions.",
+      snippet: "if x == 5:\n    ..."
+    },
+    {
+      id: "py-cannot-assign",
+      language: "python",
+      pattern: /cannot assign to (function call|literal|expression)/,
+      headline: "The left side of = has to be a variable name",
+      cause: "You wrote something like `5 = x` or `f() = x`. The name being set must come first.",
+      plain: "= always works from right to left: the value on the right goes into the name on the left. The left side has to be a name that can hold a value.",
+      fix: "Swap the sides so the variable name is on the left of =.",
+      snippet: "x = 5"
+    },
+    {
+      id: "py-outside-function",
+      language: "python",
+      pattern: /'(return|yield)' outside function|'(break|continue)' (outside loop|not properly in loop)/,
+      headline: "That keyword is outside the block it belongs to",
+      cause: "return only works inside a def, and break/continue only inside a loop. Usually the indentation is off by one level.",
+      plain: 'Some words only make sense in a certain place. return means "leave this function", so it has to be inside a function. break and continue control a loop, so they have to be inside a loop.',
+      fix: "Indent the line so it sits inside the function or loop."
+    },
+    {
+      id: "py-arg-order",
+      language: "python",
+      pattern: /positional argument follows keyword argument|non-default argument follows default argument|parameter without a default follows parameter with a default/,
+      headline: "Your arguments are in the wrong order",
+      cause: "Plain values must come before name=value ones - in both calls and definitions.",
+      plain: "Arguments are the values you pass into a function. There are two kinds: plain ones like f(5) and named ones like f(size=5). Python needs all the plain ones first.",
+      fix: "Move the name=value arguments (or the parameters with defaults) to the end.",
+      snippet: 'def greet(name, greeting="hi"):\n    ...\ngreet("Ana", greeting="hello")'
+    },
+    {
+      id: "py-statements-separated",
+      language: "python",
+      pattern: /Statements must be separated by newlines or semicolons/,
+      // Pylance
+      headline: "Python sees two statements jammed onto one line",
+      cause: 'Usually a side effect of a missing ) or quote earlier on the line - or Python 2 style `print "hi"` without brackets.',
+      plain: "Python reads one instruction per line. Something on this line - often a bracket or quote that never closes - made it look like two instructions squashed together.",
+      fix: "Fix any other error on this line first; this one often disappears with it. Otherwise put each statement on its own line.",
+      snippet: 'print("hi")'
+    },
+    {
+      id: "py-syntax",
+      language: "python",
+      pattern: /SyntaxError|invalid syntax/,
+      headline: "Python couldn't read this line",
+      cause: "A typo in the structure: a missing comma, bracket, quote or colon - or `=` where you meant `==`.",
+      plain: "Syntax is the grammar of a programming language. Something on this line breaks Python's grammar rules, so Python can't work out what you mean.",
+      fix: "Look at the reported line and the line above it. Compare with `if x == 1:` style."
+    },
+    {
+      id: "py-keyerror",
+      language: "python",
+      pattern: /KeyError/,
+      headline: "That key isn't in the dictionary",
+      cause: "You asked for a key the dict doesn't have.",
+      plain: "A dictionary stores values under labels called keys, like a real dictionary stores definitions under words. You asked for a label that isn't in it.",
+      fix: "Use dict.get(key) to get None instead of crashing, or check `if key in dict` first.",
+      snippet: 'value = my_dict.get("key", default_value)'
+    },
+    {
+      id: "py-indexerror",
+      language: "python",
+      pattern: /IndexError/,
+      headline: "You asked for a position the list doesn't have",
+      cause: "The list is shorter than your index. Lists start at 0, so a 3-item list ends at index 2.",
+      plain: "Each item in a list has a position number called an index. Python starts counting at 0, so the first item is [0]. You asked for a position past the end of the list.",
+      fix: "Print len(your_list) - if it is n, the last valid index is n-1.",
+      snippet: "if i < len(items):\n    item = items[i]"
+    },
+    {
+      id: "py-list-index-type",
+      language: "python",
+      pattern: /indices must be integers/,
+      headline: "You used text (or a float) as a list position",
+      cause: "List positions must be whole numbers. Often the value came from input() or a division with /.",
+      plain: `A list position has to be a whole number, like 0, 1 or 2. Python can't find item "2" (text) or item 2.0 (a decimal).`,
+      fix: "Convert it with int(), or use // for whole-number division.",
+      snippet: "item = items[int(i)]"
+    },
+    {
+      id: "py-modulenotfound",
+      language: "python",
+      pattern: /ModuleNotFoundError|No module named|Import '[\w.]+' could not be resolved/,
+      headline: "That package isn't installed",
+      cause: "Python cannot find the module - or it is installed in a different Python than the one running your code.",
+      plain: "A module (or package) is code someone else wrote that you load with import. Python looked for this one on your computer and couldn't find it.",
+      fix: "Install it with the same Python that runs your script. If it is your own file, check the name and folder.",
+      snippet: "python -m pip install <package-name>"
+    },
+    {
+      id: "py-cannot-import-name",
+      language: "python",
+      pattern: /cannot import name/,
+      headline: "That name isn't in the module you imported from",
+      cause: "It is misspelled, it moved in a newer version - or two of your files import each other (circular import).",
+      plain: `from x import y means "open x and take out y". Python opened x, but there's nothing inside called y.`,
+      fix: "Check the spelling. If two files import each other, move the shared code into a third file."
+    },
+    {
+      id: "py-module-shadow",
+      language: "python",
+      pattern: /(partially initialized )?module '\w+' has no attribute/,
+      headline: "That module is missing something it should have",
+      cause: "Very often one of your own files has the same name as the library (e.g. random.py, json.py) and Python imported yours.",
+      plain: "When you import something, Python looks in your own folder first. If one of your files has the same name as a library, Python grabs your file instead of the real library.",
+      fix: "Rename your file so it does not share a name with the library, and delete any __pycache__ folder next to it."
+    },
+    {
+      id: "py-zerodivision",
+      language: "python",
+      pattern: /ZeroDivisionError/,
+      headline: "You divided by zero",
+      cause: "The denominator worked out to 0 at runtime.",
+      plain: "Dividing by zero has no answer in math, so Python stops instead of guessing.",
+      fix: "Check the denominator before dividing and handle the zero case.",
+      snippet: "average = total / count if count else 0"
+    },
+    {
+      id: "py-concatenate",
+      language: "python",
+      pattern: /can only concatenate/,
+      headline: "You tried to join text and a number with +",
+      cause: "In Python, + joins two strings or adds two numbers - not one of each.",
+      plain: "Text (a string) and numbers are different types of value in Python. + can join two pieces of text or add two numbers, but it won't mix one of each.",
+      fix: "Use an f-string, which converts for you.",
+      snippet: 'message = f"score: {score}"'
+    },
+    {
+      id: "py-unsupported-operand",
+      language: "python",
+      pattern: /unsupported operand type|Operator '.+' not supported for types/,
+      headline: "You're combining two things that can't be combined",
+      cause: 'Usually text and a number, like "3" + 4. Python will not guess what you meant.',
+      plain: "Every value has a type, like text or number. Symbols like +, - and * only work when both sides are types that make sense together.",
+      fix: "Convert one of them: int(x), float(x), or str(x). input() always returns text.",
+      snippet: "total = int(a) + int(b)"
+    },
+    {
+      id: "py-valerror-int",
+      language: "python",
+      pattern: /invalid literal for int|could not convert string to float/,
+      headline: "You tried to convert something to a number, but it isn't one",
+      cause: "int() or float() got text that does not look like a number - an empty string, spaces, or letters.",
+      plain: `int() turns text like "42" into the number 42. It only works when the text actually looks like a number. Something like "hello" or an empty string can't be turned into one.`,
+      fix: "Strip the text and handle the bad case instead of crashing.",
+      snippet: "try:\n    n = int(text.strip())\nexcept ValueError:\n    n = 0  # or ask again"
+    },
+    {
+      id: "py-unpack",
+      language: "python",
+      pattern: /too many values to unpack|not enough values to unpack/,
+      headline: "The number of names doesn't match the number of values",
+      cause: "You wrote `a, b = something` but something has a different number of items. Looping over a dict without .items() does this too.",
+      plain: `a, b = something means "take the items out of something and put them in a and b, in order". That only works when there's exactly one item for each name.`,
+      fix: "Print the value to see how many items it has. For dicts, loop over .items().",
+      snippet: "for key, value in my_dict.items():\n    ..."
+    },
+    {
+      id: "py-missing-argument",
+      language: "python",
+      pattern: /missing \d+ required (positional|keyword-only) argument|Argument missing for parameter/,
+      headline: "You called a function without all the values it needs",
+      cause: "The function definition lists more parameters than you passed. In a class, forgetting `self` - or calling the class's method without making an object first - also causes this.",
+      plain: "Arguments are the values you pass into a function between the ( ). This function was written to receive more values than you gave it.",
+      fix: "Pass the missing argument, or give the parameter a default value.",
+      snippet: 'def greet(name="friend"):\n    ...'
+    },
+    {
+      id: "py-too-many-arguments",
+      language: "python",
+      pattern: /takes \d+ positional arguments? but \d+ (were|was) given|Expected \d+ positional arguments?/,
+      headline: "You passed more values than the function accepts",
+      cause: "Inside a class, this almost always means the method is missing `self` as its first parameter.",
+      plain: "Arguments are the values you pass into a function between the ( ). You gave this function more values than it has slots for.",
+      fix: "Add `self` as the first parameter of the method, or remove the extra argument.",
+      snippet: "class Dog:\n    def bark(self, times):\n        ..."
+    },
+    {
+      id: "py-unexpected-keyword",
+      language: "python",
+      pattern: /got an unexpected keyword argument|No parameter named/,
+      headline: "You passed a named argument the function doesn't have",
+      cause: "The name after the = is misspelled, or this version of the function does not take that option.",
+      plain: "A named argument looks like f(size=5). The name before = has to match one of the names in the function's def line, and this one doesn't.",
+      fix: "Check the function's parameter names. In a class, make sure the name is in __init__."
+    },
+    {
+      id: "py-multiple-values",
+      language: "python",
+      pattern: /got multiple values for argument/,
+      headline: "You gave the same argument twice",
+      cause: "A value was passed by position and again by name. In a method, a missing `self` shifts every position by one.",
+      plain: "Each slot in a function can be filled once, either by position like f(5) or by name like f(x=5). This slot got filled both ways.",
+      fix: "Pass it only once. If this is a method, check that `self` is the first parameter."
+    },
+    {
+      id: "py-module-not-callable",
+      language: "python",
+      pattern: /'module' object is not callable/,
+      headline: "You called the module instead of the thing inside it",
+      cause: "Many modules contain a function or class with the same name - `import datetime` gives you the module, not the class.",
+      plain: "A module is like a toolbox, and the function or class inside it is the tool. Writing ( ) tries to use the toolbox itself instead of the tool inside.",
+      fix: "Import the name from the module.",
+      snippet: "from datetime import datetime\nnow = datetime.now()"
+    },
+    {
+      id: "py-not-callable",
+      language: "python",
+      pattern: /object is not callable/,
+      headline: "You called something that isn't a function",
+      cause: "You put ( ) after a value - often a variable that reuses a built-in name like list, str or sum.",
+      plain: `Putting ( ) after a name means "run this". Only functions and classes can run. A plain value like a number, string or list can't.`,
+      fix: "Rename the variable that shadows the function. Don't name variables list, str, dict, sum or input.",
+      snippet: "numbers = [1, 2, 3]  # not: list = [1, 2, 3]"
+    },
+    {
+      id: "py-not-iterable",
+      language: "python",
+      pattern: /object is not iterable/,
+      headline: "You tried to loop over something that isn't a collection",
+      cause: "A for loop needs a list, string, dict or range. A plain number is not one.",
+      plain: "A for loop goes through a collection one item at a time. A single number isn't a collection, so there's nothing to go through.",
+      fix: "To repeat n times, loop over range(n).",
+      snippet: "for i in range(n):\n    ..."
+    },
+    {
+      id: "py-in-not-iterable",
+      language: "python",
+      pattern: /argument of type '\w+' is not iterable/,
+      headline: "You used `in` on something that isn't a collection",
+      cause: "`x in y` needs y to be a list, string, dict or set - a number or None does not work.",
+      plain: 'x in y asks "is x one of the things inside y?". That question only makes sense when y is a collection, like a list or a string.',
+      fix: "Print y before this line. If it should be text, wrap it with str().",
+      snippet: "if str(digit) in str(number):\n    ..."
+    },
+    {
+      id: "py-compare-types",
+      language: "python",
+      pattern: /not supported between instances of/,
+      headline: "You compared two things that can't be compared",
+      cause: "Python will not use < or > between text and numbers (or None). Sorting a mixed list does this too.",
+      plain: `< and > ask "which is bigger?". Python can compare two numbers or two pieces of text, but it won't guess how text compares to a number.`,
+      fix: "Convert both sides to the same type first. input() always returns text.",
+      snippet: "if int(answer) > 10:\n    ..."
+    },
+    {
+      id: "py-closed-file",
+      language: "python",
+      pattern: /I\/O operation on closed file/,
+      headline: "You used a file after it was closed",
+      cause: "A `with open(...)` block closes the file when it ends. This line runs after that.",
+      plain: "Opening a file is like opening a book. Once it's closed, you can't read or write it until you open it again.",
+      fix: "Indent the code that reads or writes the file so it is inside the with block.",
+      snippet: "with open(path) as f:\n    data = f.read()"
+    },
+    {
+      id: "py-unicode-decode",
+      language: "python",
+      pattern: /UnicodeDecodeError|codec can't decode byte/,
+      headline: "The file isn't in the text encoding Python expected",
+      cause: "Python guessed the wrong encoding - very common on Windows, or when opening a binary file as text.",
+      plain: "Text is saved as numbers, and an encoding is the code that says which number means which letter. Python read the file using the wrong code, so some bytes didn't make sense.",
+      fix: 'Say the encoding explicitly. Images and other binary files need mode "rb".',
+      snippet: 'with open(path, encoding="utf-8") as f:\n    text = f.read()'
+    },
+    {
+      id: "py-ssl-cert",
+      language: "python",
+      pattern: /CERTIFICATE_VERIFY_FAILED/,
+      headline: "Python can't verify the website's security certificate",
+      cause: "On macOS the python.org installer ships without certificates until you install them.",
+      plain: "Secure websites prove who they are with a certificate, like an ID card. Python needs a list of trusted ID issuers to check it, and that list isn't installed.",
+      fix: 'Run "Install Certificates.command" in your Python folder, or install certifi.',
+      snippet: "python -m pip install --upgrade certifi"
+    },
+    {
+      id: "py-connection",
+      language: "python",
+      pattern: /ConnectionRefusedError|Connection refused|Max retries exceeded with url|Failed to establish a new connection/,
+      headline: "Couldn't connect to the server",
+      cause: "Nothing is listening at that address - the server is not running, the port is wrong, or there is no internet.",
+      plain: "Your code tried to talk to another program over the network, but nobody answered at that address.",
+      fix: "Check the URL and port, and that the server is actually started."
+    },
+    {
+      id: "py-math-domain",
+      language: "python",
+      pattern: /math domain error/,
+      headline: "That math function got a value it cannot handle",
+      cause: "Usually sqrt() of a negative number, or log() of zero or a negative number.",
+      plain: "Some math has no ordinary answer, like the square root of a negative number. Python's math functions stop instead of guessing.",
+      fix: "Check the value before calling the function.",
+      snippet: "root = math.sqrt(x) if x >= 0 else None"
+    },
+    {
+      id: "py-float-as-int",
+      language: "python",
+      pattern: /'float' object cannot be interpreted as an integer/,
+      headline: "You used a decimal number where a whole number is needed",
+      cause: "range() and list positions need whole numbers, and / always gives a float in Python 3.",
+      plain: "Python has whole numbers (int) like 3 and decimal numbers (float) like 3.0. Things like range() and list positions only accept whole numbers. Note that / always gives a decimal, even for 6 / 2.",
+      fix: "Use // for whole-number division, or wrap the value in int().",
+      snippet: "for i in range(len(items) // 2):\n    ..."
+    },
+    {
+      id: "py-str-immutable",
+      language: "python",
+      pattern: /'str' object does not support item assignment/,
+      headline: "You can't change one character of a string in place",
+      cause: "Strings in Python cannot be modified. Every change builds a new string.",
+      plain: "Python strings are locked once they're made. You can't swap one letter, but you can easily build a new string with the change.",
+      fix: "Build a new string, or convert to a list, edit it, and join it back.",
+      snippet: 'chars = list(text)\nchars[0] = "X"\ntext = "".join(chars)'
+    },
+    {
+      id: "py-unhashable",
+      language: "python",
+      pattern: /unhashable type/,
+      headline: "You used a list (or dict) as a dictionary key or set item",
+      cause: "Keys and set items must not be changeable. Lists and dicts can change, so they are not allowed.",
+      plain: "Dictionary keys and set items have to stay the same forever, so Python can find them again. Lists and dictionaries can change, so Python won't use them as keys.",
+      fix: "Convert the list to a tuple first.",
+      snippet: "seen.add(tuple(item))"
+    },
+    {
+      id: "py-dict-changed-size",
+      language: "python",
+      pattern: /changed size during iteration/,
+      headline: "You changed a dict (or set) while looping over it",
+      cause: "Adding or removing items while a for loop walks the same collection confuses the loop.",
+      plain: "A for loop keeps its place as it walks through a collection. Adding or removing items while it walks moves things around, and Python stops to avoid skipping or repeating items.",
+      fix: "Loop over a copy of the keys instead.",
+      snippet: "for key in list(my_dict):\n    if should_remove(key):\n        del my_dict[key]"
+    },
+    {
+      id: "py-recursion",
+      language: "python",
+      pattern: /RecursionError|maximum recursion depth exceeded/,
+      headline: "A function called itself forever",
+      cause: "Recursion with no stopping condition, or one that is never reached.",
+      plain: "Recursion is when a function calls itself. Each call waits for the next one to finish, and these calls never stopped, so Python gave up after about 1000 of them.",
+      fix: "Add a base case at the top of the function that returns without calling itself.",
+      snippet: "def countdown(n):\n    if n <= 0:\n        return  # base case\n    countdown(n - 1)"
+    },
+    {
+      id: "py-json-decode",
+      language: "python",
+      pattern: /JSONDecodeError|Expecting value: line \d+/,
+      headline: "You tried to parse text that isn't valid JSON",
+      cause: "The text is empty, or it is an HTML error page - often a failed web request.",
+      plain: `JSON is a common text format for sending data, like {"name": "Ada"}. The text you tried to read doesn't follow that format.`,
+      fix: "Check the response status and print the raw text before parsing.",
+      snippet: "resp.raise_for_status()\ndata = resp.json()"
+    },
+    {
+      id: "py-attributeerror",
+      language: "python",
+      pattern: /AttributeError|Cannot access attribute/,
+      headline: "That object doesn't have the attribute you asked for",
+      cause: "Either the name is misspelled, or the object is a different type than you expected.",
+      plain: "An attribute is something that belongs to a value, which you reach with a dot, like name.upper(). This value doesn't have anything with that name.",
+      fix: "Print the type and the available attributes, and check the spelling.",
+      snippet: "print(type(obj), dir(obj))"
+    },
+    {
+      id: "py-filenotfound",
+      language: "python",
+      pattern: /FileNotFoundError|No such file or directory/,
+      headline: "That file isn't where you said it is",
+      cause: "The path is wrong, or you are running the script from a different folder than you think.",
+      plain: "A path is a file's address on your computer. Python went to that address and found nothing there.",
+      fix: "Build the path from the script's own folder so it works no matter where you run it from.",
+      snippet: 'from pathlib import Path\npath = Path(__file__).parent / "data.txt"'
+    },
+    {
+      id: "py-is-a-directory",
+      language: "python",
+      pattern: /IsADirectoryError|NotADirectoryError/,
+      headline: "You mixed up a file and a folder",
+      cause: "open() needs a path to a file, and folder functions need a path to a folder.",
+      plain: "A directory is just another word for a folder. Some functions need a file and others need a folder, and this one got the wrong kind.",
+      fix: "Print the path and add the file name to the end if it is missing.",
+      snippet: 'path = folder / "data.txt"'
+    },
+    {
+      id: "py-file-exists",
+      language: "python",
+      pattern: /FileExistsError/,
+      headline: "That file or folder already exists",
+      cause: 'os.mkdir() and mode "x" refuse to overwrite something that is already there.',
+      plain: "You asked Python to create a file or folder that's already there. Python stops so it doesn't accidentally replace it.",
+      fix: "Pass exist_ok=True if it being there already is fine.",
+      snippet: "os.makedirs(path, exist_ok=True)"
+    },
+    {
+      id: "py-permission",
+      language: "python",
+      pattern: /PermissionError/,
+      headline: "You don't have permission to open that file",
+      cause: "The file is protected, open in another program (common on Windows), or the path is actually a folder.",
+      plain: "Your computer controls which programs may read or change each file. It said no to your code for this one.",
+      fix: "Close other programs using it, and check that the path points to a file, not a folder."
+    }
+  ];
+
+  // packages/core/src/library/javascript.ts
+  var javascriptErrors = [
+    {
+      id: "js-not-a-function",
+      language: "javascript",
+      pattern: /is not a function/,
+      headline: "You called something that isn't a function",
+      cause: "That name holds a value instead of a function - usually a failed import or a variable shadowing it.",
+      plain: 'Putting ( ) after a name means "run this". Only functions can run, and this name holds something else, like a number, a string or undefined.',
+      fix: "Print the value on the line before. Check the imported name matches the export exactly."
+    },
+    {
+      id: "js-read-undefined",
+      language: "javascript",
+      pattern: /Cannot read propert(y|ies) of (undefined|null)/,
+      headline: "You used a property of something that is undefined or null",
+      cause: "The object you're reaching into doesn't exist yet.",
+      plain: `undefined and null are JavaScript's ways of saying "no value". The dot in thing.name looks inside thing, but there's nothing there to look inside.`,
+      fix: "Find what is supposed to create it and confirm that ran. Optional chaining (obj?.prop) stops the crash.",
+      snippet: "const name = user?.profile?.name;"
+    },
+    {
+      id: "js-set-undefined",
+      language: "javascript",
+      pattern: /Cannot set propert(y|ies) of (undefined|null)/,
+      headline: "You tried to set a property on something that is undefined or null",
+      cause: "The object you're writing into doesn't exist yet.",
+      plain: `undefined and null are JavaScript's ways of saying "no value". You tried to store something inside it, but there's no object there to store it in.`,
+      fix: "Create the object first, or find out why the code that should create it did not run.",
+      snippet: 'settings.theme ??= {};\nsettings.theme.color = "dark";'
+    },
+    {
+      id: "js-destructure-undefined",
+      language: "javascript",
+      pattern: /Cannot destructure property/,
+      headline: "You unpacked fields from something that is undefined",
+      cause: "The value on the right of `const { a } =` does not exist - often a function argument that was never passed.",
+      plain: 'const { a } = obj is a shortcut for "take the a field out of obj". It only works if obj actually exists.',
+      fix: "Give it a default so there is always an object to unpack.",
+      snippet: "function draw({ x, y } = {}) {\n  ...\n}"
+    },
+    {
+      id: "js-not-iterable",
+      language: "javascript",
+      pattern: /is not iterable/,
+      headline: "You tried to loop over something that isn't a list",
+      cause: "for...of and spreading (...) need an array, string, Map or Set. Plain objects do not count.",
+      plain: "Some code, like for...of and ..., goes through a list of items one by one. This value isn't a list, so there's nothing to go through.",
+      fix: "For an object, loop over Object.entries() instead.",
+      snippet: "for (const [key, value] of Object.entries(obj)) {\n  ...\n}"
+    },
+    {
+      id: "js-not-a-constructor",
+      language: "javascript",
+      pattern: /is not a constructor/,
+      headline: "You used `new` on something that isn't a class",
+      cause: "Usually an import mix-up: a default import where the module has a named export, or the other way round.",
+      plain: "new makes a fresh object from a class, which is like a blueprint. What you put after new isn't a blueprint.",
+      fix: "Check how the module exports it, and use { Name } or a default import to match.",
+      snippet: "import { Thing } from './thing.js';"
+    },
+    {
+      id: "js-before-init",
+      language: "javascript",
+      pattern: /Cannot access '\w+' before initialization/,
+      headline: "You used a variable before the line that creates it",
+      cause: "let and const variables exist only from their declaration onwards. Circular imports cause this too.",
+      plain: "Variables made with let and const can only be used after the line that creates them. JavaScript reached this line first.",
+      fix: "Move the declaration above the first use."
+    },
+    {
+      id: "js-require-in-esm",
+      language: "javascript",
+      pattern: /require is not defined in ES module scope|ERR_REQUIRE_ESM/,
+      headline: "You mixed require() and import",
+      cause: "This file runs as an ES module, where require() does not exist - or you require()d a package that only supports import.",
+      plain: "JavaScript has two ways to load code from other files: the older require() and the newer import. This file uses the newer system, where require() doesn't exist.",
+      fix: "Use import instead.",
+      snippet: "import fs from 'node:fs';"
+    },
+    {
+      id: "js-import-outside-module",
+      language: "javascript",
+      pattern: /Cannot use import statement outside a module/,
+      headline: "This file isn't set up to use import",
+      cause: "Node treats .js files as old-style CommonJS unless told otherwise.",
+      plain: "JavaScript has two ways to load code from other files: the older require() and the newer import. Node uses the older one unless you tell it otherwise.",
+      fix: 'Add "type": "module" to package.json, or rename the file to .mjs.',
+      snippet: '"type": "module"'
+    },
+    {
+      id: "js-not-defined",
+      language: "javascript",
+      pattern: /is not defined/,
+      headline: "That variable was never created",
+      cause: "The name is misspelled, or it's declared somewhere this code can't see.",
+      plain: "JavaScript only knows names that have been created, with let, const, function or an import. It has never seen this name.",
+      fix: "Check the spelling, and that it is imported or declared in this scope."
+    },
+    {
+      id: "js-bad-json",
+      language: "javascript",
+      pattern: /Unexpected end of JSON input|is not valid JSON|in JSON at position/,
+      headline: "You tried to parse text that isn't valid JSON",
+      cause: "The string is empty or cut off - often a failed request returned nothing.",
+      plain: `JSON is a common text format for sending data, like {"name": "Ada"}. The text you tried to read doesn't follow that format.`,
+      fix: "Print the raw string before parsing it.",
+      snippet: "if (!res.ok) throw new Error(`HTTP ${res.status}`);\nconst data = await res.json();"
+    },
+    {
+      id: "js-await-not-async",
+      language: "javascript",
+      pattern: /await is only valid in async functions?|'await' expressions are only allowed within async functions/,
+      headline: "You used await in a function that is not async",
+      cause: "await only works directly inside a function marked async.",
+      plain: 'await means "pause here until this finishes". JavaScript only lets a function pause like that if the function is marked async.',
+      fix: "Add async in front of the function that contains the await.",
+      snippet: "async function load() {\n  const res = await fetch(url);\n}"
+    },
+    {
+      id: "js-already-declared",
+      language: "javascript",
+      pattern: /Identifier '\w+' has already been declared|Cannot redeclare block-scoped variable/,
+      headline: "You declared the same name twice",
+      cause: "Two let/const lines (or an import and a variable) use the same name in one scope.",
+      plain: "let and const create a new variable. You can only create a name once in the same block. After that, you change it with = alone.",
+      fix: "Drop the second let/const and just assign to it - or give it a different name."
+    },
+    {
+      id: "js-unclosed-paren",
+      language: "javascript",
+      pattern: /missing \) after argument list|Unexpected end of input/,
+      headline: "A bracket was opened and never closed",
+      cause: "A (, { or [ is missing its partner - often in a function call that spans several lines.",
+      plain: "Brackets come in pairs: every ( needs a ), every { needs a }, and every [ needs a ]. One of them is still open.",
+      fix: "Count the brackets on the reported line. Your editor highlights the matching pair when you click one."
+    },
+    {
+      id: "js-unterminated-string",
+      language: "javascript",
+      pattern: /Invalid or unexpected token|Unterminated string literal/,
+      headline: "A string is missing its closing quote, or there is a stray character",
+      cause: "Usually a quote that never closes - or curly quotes pasted from a document.",
+      plain: "A string is a piece of text inside quotes. JavaScript can't find where this one ends, or it found a character it doesn't understand.",
+      fix: "Check the quotes on that line. For text with line breaks, use backticks.",
+      snippet: "const msg = `line one\nline two`;"
+    },
+    {
+      id: "js-unexpected-token",
+      language: "javascript",
+      pattern: /Unexpected token/,
+      headline: "There's a typo in your syntax",
+      cause: "A bracket, comma, or quote is missing or extra nearby.",
+      plain: `A token is one "word" of code, like a name, a number or a symbol. JavaScript found one where its grammar rules don't allow it.`,
+      fix: "Look at the reported line and the line above it. Count your brackets."
+    },
+    {
+      id: "js-cannot-find-module",
+      language: "javascript",
+      pattern: /Cannot find module/,
+      headline: "That package isn't installed, or the path is wrong",
+      cause: "Node can't locate the file or package you imported.",
+      plain: "A module is code in another file or package that you load with import or require. Node looked where you said and found nothing.",
+      fix: "If it is a package, run npm install. If it is your own file, check the relative path."
+    },
+    {
+      id: "js-enoent",
+      language: "javascript",
+      pattern: /ENOENT/,
+      headline: "A file or folder in that path does not exist",
+      cause: "This is almost always a wrong path, not a permissions problem.",
+      plain: `ENOENT is short for "error, no entry": the file or folder doesn't exist. A path is a file's address, and nothing lives at this one.`,
+      fix: "Print the path right before the call, and check the spelling of every folder in it."
+    },
+    {
+      id: "js-eaddrinuse",
+      language: "javascript",
+      pattern: /EADDRINUSE/,
+      headline: "That port is already being used",
+      cause: "Another copy of your program is still running and holding the port.",
+      plain: "A port is like a numbered door that a server listens at. Only one program can use each door at a time, and another program is already there.",
+      fix: "Stop the old process (Ctrl+C) before starting a new one, or pick a different port.",
+      snippet: "npx kill-port 3000"
+    },
+    {
+      id: "js-econnrefused",
+      language: "javascript",
+      pattern: /ECONNREFUSED|fetch failed|Failed to fetch/,
+      headline: "Couldn't connect to the server",
+      cause: "Nothing answered at that address - the server is not running, the port is wrong, or (in a browser) CORS blocked it.",
+      plain: "Your code knocked on a server's door (an address and port), and nobody was there to answer.",
+      fix: "Open the URL in a browser to check the server is up. In a browser, also look for a CORS message in the console."
+    },
+    {
+      id: "js-cors",
+      language: "javascript",
+      pattern: /blocked by CORS policy/,
+      headline: "The browser blocked a request to another site",
+      cause: "The server did not say your page is allowed to call it. This is enforced by the browser, not your code.",
+      plain: "For safety, browsers only let a web page talk to other websites that say it's allowed. This server didn't say so.",
+      fix: "Allow your origin on the server, or route the request through your own backend or dev-server proxy."
+    },
+    {
+      id: "js-eacces",
+      language: "javascript",
+      pattern: /EACCES/,
+      headline: "You don't have permission for that file or port",
+      cause: "The file is protected, or the port is below 1024, which needs admin rights.",
+      plain: 'EACCES means "access denied". Your computer decides which programs can use each file and port, and it said no here.',
+      fix: "Use a port above 1024 (like 3000). Avoid sudo with npm - fix folder ownership instead."
+    },
+    {
+      id: "js-invalid-array-length",
+      language: "javascript",
+      pattern: /Invalid array length/,
+      headline: "You tried to make an array with an impossible size",
+      cause: "new Array(n) got a negative number, a decimal or NaN.",
+      plain: `An array's length has to be a whole number of 0 or more. You asked for something like -1, 2.5 or NaN ("not a number").`,
+      fix: "Print n before this line - it is usually the result of a calculation that went wrong."
+    },
+    {
+      id: "js-stack-overflow",
+      language: "javascript",
+      pattern: /Maximum call stack size exceeded/,
+      headline: "A function called itself forever",
+      cause: "Recursion with no stopping condition, or two functions calling each other.",
+      plain: "Recursion is when a function calls itself. Each call waits for the next one, and these calls never stopped, so JavaScript ran out of room to keep track of them.",
+      fix: "Add a base case that stops the recursion."
+    },
+    {
+      id: "js-const-reassign",
+      language: "javascript",
+      pattern: /Assignment to constant variable/,
+      headline: "You tried to change a value declared with const",
+      cause: "const means the variable can't be reassigned.",
+      plain: "const makes a variable you promise never to point at a new value. Using = on it again breaks that promise.",
+      fix: "Use let if it needs to change. const is fine for values you only read.",
+      snippet: "let count = 0;\ncount += 1;"
+    }
+  ];
+  var typescriptErrors = [
+    {
+      id: "ts-property-missing",
+      language: "typescript",
+      pattern: /Property '\w+' does not exist on type/,
+      headline: "TypeScript says that property isn't on this object",
+      cause: "You're reading a field the type doesn't declare - often a typo, or the type needs updating.",
+      plain: "TypeScript keeps a description, called a type, of what each object contains. The type for this object doesn't list the name after the dot.",
+      fix: "Check the spelling, or add the field to the type definition."
+    },
+    {
+      id: "ts-possibly-undefined",
+      language: "typescript",
+      pattern: /is possibly '(undefined|null)'/,
+      headline: "TypeScript is warning that this value might not exist yet",
+      cause: "The value could be undefined at this point, and TypeScript wants you to handle that.",
+      plain: 'undefined means "no value". TypeScript can see a way this could be undefined when the line runs, and it wants you to handle that before it crashes.',
+      fix: "Check it first: `if (value) { ... }` - or use a default with `value ?? fallback`.",
+      snippet: "const safe = value ?? fallback;"
+    },
+    {
+      id: "ts-cannot-find-name",
+      language: "typescript",
+      pattern: /Cannot find name/,
+      headline: "You used a name TypeScript can't find",
+      cause: "The variable or function is misspelled, not imported, or used before it is declared.",
+      plain: "TypeScript only knows names that have been declared, with let, const, function, class or an import. It has never seen this one.",
+      fix: "Check the spelling first. Then check the import, then whether it is declared above this line."
+    },
+    {
+      id: "ts-argument-type",
+      language: "typescript",
+      pattern: /is not assignable to parameter of type|cannot be assigned to parameter/,
+      headline: "You passed the wrong type of value into that function",
+      cause: "The function expects one type of value and you gave it another.",
+      plain: "Every value has a type, like number or string. This function says which type it wants, and the value you passed is a different type.",
+      fix: "Convert it - Number(x), String(x) - or fix the function signature to accept what you passed."
+    },
+    {
+      id: "ts-arg-count",
+      language: "typescript",
+      pattern: /Expected \d+(-\d+)? arguments?, but got \d+/,
+      headline: "You passed the wrong number of arguments",
+      cause: "The function signature lists a different number of parameters than this call provides.",
+      plain: "Arguments are the values you pass into a function between the ( ). This function expects a different number of them.",
+      fix: "Match the call to the signature, or mark a parameter optional with `?`.",
+      snippet: "function greet(name: string, greeting?: string) {}"
+    },
+    {
+      id: "ts-no-overload",
+      language: "typescript",
+      pattern: /No overload matches this call/,
+      headline: "None of the ways to call this function fit what you passed",
+      cause: "The function accepts several argument shapes, and yours matches none of them.",
+      plain: "Some functions can be called in several different ways, and each way is called an overload. What you passed doesn't match any of them.",
+      fix: 'Read the last "Overload" message under the error - it shows which argument is wrong.'
+    },
+    {
+      id: "ts-missing-properties",
+      language: "typescript",
+      pattern: /is missing the following properties from type|Property '\w+' is missing in type/,
+      headline: "Your object is missing fields the type requires",
+      cause: "The type says those fields must be there, and this object does not have them.",
+      plain: "A type is a description of what an object must contain, like a checklist. This object is missing some items on the checklist.",
+      fix: "Add the missing fields, or mark them optional in the type with `?`.",
+      snippet: "type User = { name: string; age?: number };"
+    },
+    {
+      id: "ts-index-any",
+      language: "typescript",
+      pattern: /Element implicitly has an 'any' type because expression of type/,
+      headline: "TypeScript can't tell that this key exists on the object",
+      cause: "You index an object with a plain string, and the type only allows specific keys.",
+      plain: "obj[key] looks up a field by name. TypeScript knows the exact names this object has, but key could be any text, so it can't be sure the field exists.",
+      fix: "Type the key as one of the allowed keys, or give the object a Record type.",
+      snippet: "const value = obj[key as keyof typeof obj];"
+    },
+    {
+      id: "ts-implicit-any",
+      language: "typescript",
+      pattern: /implicitly has an? '?any'? type/,
+      headline: "TypeScript doesn't know what type this is",
+      cause: "A parameter or variable has no type and TypeScript cannot work one out.",
+      plain: "TypeScript wants to know what kind of value each variable holds, called its type. It can't work this one out, so you need to tell it.",
+      fix: "Add a type annotation.",
+      snippet: "function double(n: number) {\n  return n * 2;\n}"
+    },
+    {
+      id: "ts-no-exported-member",
+      language: "typescript",
+      pattern: /has no exported member|has no default export/,
+      headline: "That module doesn't export the name you imported",
+      cause: "The name is misspelled, or you used a default import for a named export (or vice versa).",
+      plain: "export marks what a file shares with other files. You asked this file for something it doesn't share, at least not under that name.",
+      fix: "Check how the module exports it, and switch between `import X` and `import { X }` to match."
+    },
+    {
+      id: "ts-readonly",
+      language: "typescript",
+      pattern: /Cannot assign to '\w+' because it is a (read-only property|constant)/,
+      headline: "You tried to change something that can't be changed",
+      cause: "It is declared with const, or the type marks it readonly.",
+      plain: "Some values are locked so they can't be changed after they're made. This is one of them.",
+      fix: "Use let for values that change, or build a new object instead of editing this one."
+    },
+    {
+      id: "ts-no-initializer",
+      language: "typescript",
+      pattern: /has no initializer and is not definitely assigned in the constructor/,
+      headline: "A class field never gets a starting value",
+      cause: "TypeScript requires every field to be set in its declaration or in the constructor.",
+      plain: "A class is a blueprint for objects, and its fields are the pieces of data each object holds. TypeScript wants every field to start with a value.",
+      fix: "Give it a default value, or set it in the constructor.",
+      snippet: "class Counter {\n  count = 0;\n}"
+    },
+    {
+      id: "ts-not-all-paths-return",
+      language: "typescript",
+      pattern: /Not all code paths return a value|Function lacks ending return statement/,
+      headline: "Your function does not always return something",
+      cause: "One branch - often the last else or the end of the function - falls through without a return.",
+      plain: "Your function promises to give back a value. There's a way through the code that reaches the end without ever reaching a return.",
+      fix: "Add a return for the case that is missing."
+    },
+    {
+      id: "ts-not-assignable",
+      language: "typescript",
+      pattern: /Type '.*' is not assignable to type/,
+      headline: "That value has the wrong type for this variable",
+      cause: "You assigned one type where another was expected.",
+      plain: "Every variable has a type, like number or string, that says what it can hold. The value you're putting in doesn't match that type.",
+      fix: "Check the declared type, then convert the value or widen the type to match."
+    },
+    {
+      id: "ts-module-not-found",
+      language: "typescript",
+      pattern: /Cannot find module|Could not find a declaration file/,
+      headline: "That package is not installed, or TypeScript cannot see it",
+      cause: "TypeScript resolved the import and found nothing at that path.",
+      plain: "A module is code in another file or package that you load with import. TypeScript looked where you said and found nothing it could use.",
+      fix: "Run npm install. If it has no types of its own, add @types/ for it, or declare the module yourself."
+    },
+    {
+      id: "ts-missing-property-obj",
+      language: "typescript",
+      pattern: /Object literal may only specify known properties/,
+      headline: "You used a property name that this type does not have",
+      cause: "TypeScript is strict about object shapes - that field is not part of the type.",
+      plain: "A type is a description of what an object may contain. This object has a field that isn't in that description.",
+      fix: "Check the spelling, or add the field to the type definition."
+    }
+  ];
+
+  // packages/core/src/library/index.ts
+  var allEntries = [
+    ...pythonErrors,
+    ...typescriptErrors,
+    // before JS: TS files also match JS entries, the TS wording should win
+    ...javascriptErrors
+  ];
+  var LANGUAGE_ALIASES = {
+    py: "python",
+    python: "python",
+    python3: "python",
+    ts: "typescript",
+    typescript: "typescript",
+    tsx: "typescriptreact",
+    typescriptreact: "typescriptreact",
+    js: "javascript",
+    javascript: "javascript",
+    jsx: "javascriptreact",
+    javascriptreact: "javascriptreact"
+  };
+  function canonical(lang) {
+    const key = (lang || "").toLowerCase().trim();
+    return LANGUAGE_ALIASES[key] ?? key;
+  }
+  function languageMatches(entryLang, incoming) {
+    const a = canonical(entryLang);
+    const b = canonical(incoming);
+    if (!b) return true;
+    if (a === "javascript" && b.startsWith("typescript")) return true;
+    return b === a || b.includes(a);
+  }
+  function normalizeQuotes(message) {
+    return message.replace(/[\u2018\u2019\u201C\u201D"']/g, "'");
+  }
+  function lookupInLibrary(message, language) {
+    const normalized = normalizeQuotes(message);
+    return allEntries.find(
+      (e) => languageMatches(e.language, language) && e.pattern.test(normalized)
+    );
+  }
+
+  // packages/core/src/classify.ts
+  function explainUnknown(message, language) {
+    const m = message.toLowerCase();
+    const rules = [
+      {
+        test: /not a function|is not callable/,
+        result: {
+          headline: "You called something that is not a function",
+          cause: "That name holds a value instead of a function - usually a failed import or a variable shadowing it.",
+          fix: "Print the value on the line before, and check the imported name matches exactly."
+        }
+      },
+      {
+        test: /cannot read propert|undefined is not|cannot read prop/,
+        result: {
+          headline: "You used a property of something that is undefined or null",
+          cause: "The object you are reaching into does not exist yet.",
+          fix: "Find what is supposed to create it and confirm that ran. Optional chaining (obj?.prop) prevents the crash."
+        }
+      },
+      {
+        test: /not defined|nameerror/,
+        result: {
+          headline: "That name was never created",
+          cause: "It is misspelled, or it is defined somewhere this code cannot see.",
+          fix: "Check the spelling, and that it is imported or declared in this scope."
+        }
+      },
+      {
+        test: /syntaxerror|unexpected token|parse error|invalid syntax/,
+        result: {
+          headline: "There is a typo in your syntax",
+          cause: "A bracket, comma, quote, or colon is missing or extra nearby.",
+          fix: "Look at the reported line and the line above it. Count your brackets and quotes."
+        }
+      },
+      {
+        test: /cannot find module|modulenotfound|no module named|importerror/,
+        result: {
+          headline: "That package or file could not be found",
+          cause: "It is not installed, or the path points somewhere that does not exist.",
+          fix: "If it is a package, install it. If it is your own file, check the relative path."
+        }
+      },
+      {
+        test: /indexerror|keyerror|out of range|index out of bounds/,
+        result: {
+          headline: "You asked for an item that does not exist",
+          cause: "The list is shorter than your index, or the dictionary does not have that key.",
+          fix: "Print the length, or the available keys, right before this line."
+        }
+      },
+      {
+        test: /indentationerror|unexpected indent|expected an indented block/,
+        result: {
+          headline: "Your indentation is inconsistent",
+          cause: "This line does not line up with the block it belongs to.",
+          fix: "Re-indent the block. Do not mix tabs and spaces."
+        }
+      },
+      {
+        test: /unsupported operand|cannot convert|typeerror|type error|not subscriptable/,
+        result: {
+          headline: "A value has the wrong type for what you are doing",
+          cause: "You are using a value in a way its type does not support.",
+          fix: "Print the value and its type on the line before. Convert it if needed."
+        }
+      },
+      {
+        test: /division by zero|zerodivision/,
+        result: {
+          headline: "You divided by zero",
+          cause: "The denominator worked out to 0 at runtime.",
+          fix: "Check the denominator before dividing and handle the zero case."
+        }
+      },
+      {
+        test: /cannot find name/,
+        result: {
+          headline: "That name was never created",
+          cause: "It is misspelled, not imported, or used before it is declared.",
+          fix: "Check the spelling first, then the import, then the declaration order."
+        }
+      },
+      {
+        test: /not assignable|argument of type/,
+        result: {
+          headline: "A value has the wrong type for where you used it",
+          cause: "This spot expects one type of value and got another.",
+          fix: "Convert the value, or widen the type to accept what you are passing."
+        }
+      },
+      {
+        test: /eacces|permission denied/,
+        result: {
+          headline: "You do not have permission to access that",
+          cause: "The file or folder is protected, or another program is using it.",
+          fix: "Close whatever is using it, or check that you can write to that path."
+        }
+      }
+    ];
+    const hit = rules.find((r) => r.test.test(m));
+    if (hit) return hit.result;
+    return {
+      headline: "We do not have a written explanation for this one yet",
+      cause: "This error is not in our library.",
+      fix: "Read the first line of the error - it usually names the file, the line, and the kind of problem."
+    };
+  }
+
+  // packages/core/src/suggest.ts
+  var KNOWN = [
+    // Python
+    "print",
+    "input",
+    "len",
+    "range",
+    "int",
+    "str",
+    "float",
+    "list",
+    "dict",
+    "set",
+    "tuple",
+    "bool",
+    "sum",
+    "min",
+    "max",
+    "abs",
+    "round",
+    "sorted",
+    "reversed",
+    "enumerate",
+    "zip",
+    "map",
+    "filter",
+    "open",
+    "type",
+    "isinstance",
+    "any",
+    "all",
+    "None",
+    "True",
+    "False",
+    "self",
+    "super",
+    "return",
+    "import",
+    "random",
+    "math",
+    "json",
+    "os",
+    "sys",
+    "time",
+    // JavaScript / TypeScript
+    "console",
+    "document",
+    "window",
+    "require",
+    "Math",
+    "JSON",
+    "Array",
+    "Object",
+    "String",
+    "Number",
+    "Promise",
+    "setTimeout",
+    "parseInt",
+    "undefined",
+    "null",
+    "true",
+    "false",
+    "function"
+  ];
+  function distance(a, b) {
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const cur = [i];
+      for (let j = 1; j <= b.length; j++) {
+        cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      }
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+  function closestName(name, context = "") {
+    const pool = /* @__PURE__ */ new Set([...KNOWN, ...context.match(/\b[A-Za-z_]\w*\b/g) ?? []]);
+    pool.delete(name);
+    const limit = name.length <= 4 ? 1 : 2;
+    let best;
+    let bestD = limit + 1;
+    for (const c of pool) {
+      const d = distance(name.toLowerCase(), c.toLowerCase());
+      if (d < bestD) [best, bestD] = [c, d];
+    }
+    return best;
+  }
+  function suggestFix(message, lineText = "", context = "") {
+    if (!lineText.trim()) return void 0;
+    const msg = message.replace(/[‘’“”"]/g, "'");
+    const line = lineText.replace(/\s+$/, "");
+    const undefinedName = /'(\w+)' is not defined|Cannot find name '(\w+)'/.exec(msg);
+    if (undefinedName) {
+      const name = undefinedName[1] ?? undefinedName[2];
+      const best = closestName(name, context);
+      if (!best) return void 0;
+      return {
+        fix: "Did you mean `" + best + "`? Here is the line with that change:",
+        snippet: line.replace(new RegExp("\\b" + name + "\\b"), best)
+      };
+    }
+    if (/expected ':'/i.test(msg) && !line.endsWith(":")) {
+      return { fix: "Add a colon at the end of the line:", snippet: line + ":" };
+    }
+    const emptyImport = /^(\s*)(?:from\s+([\w.]+)\s+)?import\s*$/.exec(line);
+    if (emptyImport && /import|module name|invalid syntax/i.test(msg)) {
+      const [, indent, mod] = emptyImport;
+      return mod ? {
+        fix: "Name what you need from `" + mod + "`, or delete the line if you no longer use it:",
+        snippet: indent + "from " + mod + " import name_you_need"
+      } : {
+        fix: "Name the module to import, or delete the line if you no longer need it:",
+        snippet: indent + "import module_name"
+      };
+    }
+    return void 0;
+  }
+  return __toCommonJS(stdin_exports);
+})();
+
+</script>
+<script>
+// Host-agnostic: only listens for window "message" events, so the same file
+// works in a VS Code webview or an Electron window.
+
+const esc = (s) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+
+// Inline: `code` and **bold**. Backtick segments are split out first so ** inside code stays literal.
+const inline = (s) =>
+  s
+    .split('`')
+    .map((part, i) =>
+      i % 2 ? `<code>${esc(part)}</code>` : esc(part).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>'),
+    )
+    .join('');
+
+function prose(text) {
+  return text
+    .trim()
+    .split(/\n{2,}/)
+    .filter(Boolean)
+    .map((block) => {
+      const lines = block.split('\n');
+      if (lines.every((l) => /^\s*[-*] /.test(l)))
+        return `<ul>${lines.map((l) => `<li>${inline(l.replace(/^\s*[-*] /, ''))}</li>`).join('')}</ul>`;
+      if (lines.every((l) => /^\s*\d+[.)] /.test(l)))
+        return `<ol>${lines.map((l) => `<li>${inline(l.replace(/^\s*\d+[.)] /, ''))}</li>`).join('')}</ol>`;
+      if (/^#{1,6} /.test(block)) return `<h3>${inline(block.replace(/^#+ /, ''))}</h3>`;
+      return `<p>${inline(lines.join(' '))}</p>`;
+    })
+    .join('');
+}
+
+// ponytail: tiny markdown subset (paragraphs, lists, headings, code, bold). Swap in `marked` if the AI starts using tables/links.
+// Odd segments after splitting on ``` are code, which also handles an unclosed fence mid-stream.
+function md(src) {
+  return src
+    .split('```')
+    .map((part, i) => {
+      if (!(i % 2)) return prose(part);
+      const nl = part.indexOf('\n');
+      const lang = nl < 0 ? '' : part.slice(0, nl).trim();
+      const code = nl < 0 ? '' : part.slice(nl + 1).replace(/\n$/, '');
+      return `<pre data-lang="${esc(lang)}"><code>${esc(code)}</code></pre>`;
+    })
+    .join('');
+}
+
+// Color the error type red like a terminal does: `NameError:`, `error TS2339:`, `SyntaxError:`.
+const terminalTitle = (s) => {
+  const m = /\b(\w*Error|error(?: TS\d+)?)\b:?/.exec(s);
+  return m ? esc(s.slice(0, m.index)) + `<span class="err">${esc(m[0])}</span>` + esc(s.slice(m.index + m[0].length)) : esc(s);
+};
+
+// VS Code language ids → display names; unknown ids show as-is.
+const LANGS = { python: 'Python', typescript: 'TypeScript', typescriptreact: 'TSX', javascript: 'JavaScript', javascriptreact: 'JSX' };
+
+const list = /** @type {HTMLElement} */ (document.getElementById('list'));
+const cards = new Map();
+
+function card(id) {
+  let c = cards.get(id);
+  if (!c) {
+    const el = document.createElement('article');
+    el.className = 'card';
+    el.innerHTML =
+      '<header><div class="title"></div><div class="meta"><span>Language: <span class="lang"></span></span><span>File: <span class="loc"></span></span><span>Type: <span class="src"></span></span></div></header><div class="body"></div>';
+    c = { el, body: el.querySelector('.body'), text: '' };
+    cards.set(id, c);
+    list.prepend(el); // newest on top
+  }
+  return c;
+}
+
+function addCopyButtons(c) {
+  for (const pre of c.body.querySelectorAll('pre')) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'copy';
+    b.textContent = 'Copy';
+    b.setAttribute('aria-label', 'Copy code');
+    pre.append(b);
+  }
+}
+
+list.addEventListener('click', (e) => {
+  const b = e.target.closest('.copy');
+  if (!b) return;
+  const code = b.parentElement.querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(
+    () => {
+      b.textContent = 'Copied ✓';
+      b.classList.add('done');
+      setTimeout(() => {
+        b.textContent = 'Copy';
+        b.classList.remove('done');
+      }, 1500);
+    },
+    () => getSelection().selectAllChildren(code), // clipboard blocked: select it so Cmd/Ctrl+C works
+  );
+});
+
+function setStreaming(c, on) {
+  c.el.classList.toggle('streaming', on);
+  c.el.setAttribute('aria-busy', String(on));
+}
+
+window.addEventListener('message', ({ data: m }) => {
+  if (!m || !m.id) return;
+  if (m.type === 'resolve') {
+    const gone = cards.get(m.id);
+    if (gone) {
+      cards.delete(m.id);
+      gone.el.classList.add('leaving');
+      setTimeout(() => gone.el.remove(), 300); // timer, not animationend: reduced motion has no animation
+    }
+    return;
+  }
+  const c = card(m.id);
+  if (m.type === 'start') {
+    c.el.querySelector('.title').innerHTML = terminalTitle(m.title ?? '');
+    const lang = c.el.querySelector('.lang');
+    lang.textContent = LANGS[m.language] ?? m.language ?? '';
+    lang.dataset.lang = (m.language ?? '').toLowerCase(); // core sends 'Python', VS Code sends 'python'
+    c.el.querySelector('.loc').textContent = m.location ?? '';
+    c.el.querySelector('.src').textContent = m.source ?? '';
+    c.text = '';
+    c.body.innerHTML = '';
+    // Replays jump to the top and re-run the entrance animation.
+    c.el.remove();
+    list.prepend(c.el);
+    setStreaming(c, true);
+  } else if (m.type === 'chunk') {
+    c.text += m.delta;
+    c.body.innerHTML = md(c.text);
+    setStreaming(c, true);
+  } else if (m.type === 'explanation') {
+    c.text = m.text;
+    c.body.innerHTML = md(c.text);
+    addCopyButtons(c);
+    setStreaming(c, false);
+  }
+});
+
+// Tell the VS Code host we're listening (no-op elsewhere).
+const host = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+host?.postMessage({ type: 'ready' });
+document.getElementById('open-settings')?.addEventListener('click', () => host?.postMessage({ type: 'openSettings' }));
+
+if (typeof module === 'object') module.exports = { md, terminalTitle }; // for node self-check
+
+</script>
+<script>
+(() => { // own scope: panel.js already declares top-level names like `esc`
+const EXAMPLE = `import random
+from math import
+
+def roll_dice(sides):
+    return random.randint(1, sides)
+
+scores = []
+for turn in range(3)
+    scores.append(roll_dice(6))
+
+pritn("You rolled:", scores)
+print("Total:", sum(scores))
+`;
+const FILE = 'dice_game.py';
+const PATIENCE_MS = 1500; // squiggle.patience default: wait for typing to stop
+
+const KEYWORDS = new Set('False None True and as assert async await break class continue def del elif else except finally for from global if import in is lambda nonlocal not or pass raise return try while with yield'.split(' '));
+const DEF_KW = new Set('def class import from as return lambda None True False and or not in is'.split(' '));
+const BUILTINS = new Set('print input len range int str float list dict set tuple bool sum min max abs round sorted reversed enumerate zip map filter open type isinstance any all super object Exception ValueError TypeError KeyError IndexError NameError ZeroDivisionError iter next format chr ord id hash help dir vars getattr setattr hasattr callable divmod pow __name__ __file__ self cls'.split(' '));
+
+const $ = (id) => document.getElementById(id);
+const code = $('code');
+const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+
+// Strings and comments become spaces (same length), so the checker never reads inside them.
+const blank = (line) =>
+  line.replace(/#.*$|"(?:[^"\\]|\\.)*"?|'(?:[^'\\]|\\.)*'?/g, (m) => (m[0] === '#' ? ' '.repeat(m.length) : m[0] + ' '.repeat(Math.max(0, m.length - 2)) + (m.length > 1 ? m[m.length - 1] : '')));
+
+// ---------- a tiny Pylance stand-in: just enough to show real squiggles ----------
+function check(text) {
+  const lines = text.split('\n');
+  const clean = lines.map(blank);
+  const defined = new Set([...KEYWORDS, ...BUILTINS]);
+  const add = (s) => s && s.split(',').forEach((n) => { const w = n.trim().split(/\s+as\s+/).pop().split('.')[0]; if (/^\w+$/.test(w)) defined.add(w); });
+
+  for (const l of clean) {
+    let m;
+    if ((m = /^\s*import\s+(.+)$/.exec(l))) add(m[1]);
+    if ((m = /^\s*from\s+\S+\s+import\s+(.+)$/.exec(l))) add(m[1].replace(/[()]/g, ''));
+    if ((m = /^\s*(?:async\s+)?def\s+(\w+)\s*\(([^)]*)/.exec(l))) { defined.add(m[1]); m[2].split(',').forEach((p) => add(p.split(/[:=]/)[0].replace(/\*/g, ''))); }
+    if ((m = /^\s*class\s+(\w+)/.exec(l))) defined.add(m[1]);
+    if ((m = /^\s*([\w\s,]+?)\s*(?:[+\-*/%]?=)(?!=)/.exec(l))) add(m[1]);
+    for (const f of l.matchAll(/\bfor\s+([\w\s,]+?)\s+in\b/g)) add(f[1]);
+    for (const a of l.matchAll(/\bas\s+(\w+)/g)) defined.add(a[1]);
+    for (const g of l.matchAll(/\b(?:global|nonlocal)\s+([\w\s,]+)/g)) add(g[1]);
+  }
+
+  const diags = [];
+  clean.forEach((l, i) => {
+    const trimmed = l.trimEnd();
+    if (!trimmed.trim()) return;
+    let m;
+    if ((m = /^(\s*)import\s*$/.exec(trimmed))) {
+      diags.push({ line: i, start: m[1].length, end: trimmed.length, severity: 'error', message: 'Expected module name' });
+      return;
+    }
+    if (/^\s*from\s+\S+\s+import\s*$/.test(trimmed)) {
+      diags.push({ line: i, start: trimmed.search(/\S/), end: trimmed.length, severity: 'error', message: 'Expected one or more symbol names after "import"' });
+      return;
+    }
+    if (/^\s*(import|from)\b/.test(trimmed)) return;
+
+    const opens = (trimmed.match(/[([{]/g) || []).length;
+    const closes = (trimmed.match(/[)\]}]/g) || []).length;
+    if (/^\s*(if|elif|else|for|while|def|class|try|except|finally|with)\b/.test(trimmed) && !trimmed.endsWith(':') && opens === closes) {
+      diags.push({ line: i, start: trimmed.length, end: trimmed.length + 1, severity: 'error', message: 'Expected ":"' });
+    }
+
+    for (const t of trimmed.matchAll(/\b[A-Za-z_]\w*\b/g)) {
+      const name = t[0];
+      const before = trimmed.slice(0, t.index).trimEnd();
+      const after = trimmed.slice(t.index + name.length);
+      if (defined.has(name) || before.endsWith('.') || /^\s*=(?!=)/.test(after)) continue;
+      diags.push({ line: i, start: t.index, end: t.index + name.length, severity: 'warning', message: `"${name}" is not defined` });
+    }
+  });
+  return diags;
+}
+
+// ---------- highlighting ----------
+const TOKEN = /(#.*$)|("(?:[^"\\]|\\.)*"?|'(?:[^'\\]|\\.)*'?)|(\b\d+(?:\.\d+)?\b)|(\b[A-Za-z_]\w*\b)|(\s+|.)/g;
+function tokens(line) {
+  const out = [];
+  for (const m of line.matchAll(TOKEN)) {
+    let cls = '';
+    if (m[1]) cls = 'com';
+    else if (m[2]) cls = 'str';
+    else if (m[3]) cls = 'num';
+    else if (m[4]) {
+      const next = line.slice(m.index + m[0].length);
+      cls = DEF_KW.has(m[0]) ? 'def' : KEYWORDS.has(m[0]) ? 'kw' : /^\s*\(/.test(next) || BUILTINS.has(m[0]) && m[0] !== 'self' ? 'fn' : '';
+    } else cls = /\s/.test(m[0]) ? '' : 'op';
+    out.push([m[0], cls]);
+  }
+  return out;
+}
+
+function renderLine(line, diag) {
+  let html = '';
+  let pos = 0;
+  for (const [text, cls] of tokens(line)) {
+    const a = pos, b = pos + text.length;
+    pos = b;
+    const cut = diag ? [a, Math.max(a, Math.min(b, diag.start)), Math.max(a, Math.min(b, diag.end)), b] : [a, b, b, b];
+    [[cut[0], cut[1], ''], [cut[1], cut[2], 'sq-' + (diag && diag.severity)], [cut[2], cut[3], '']].forEach(([s, e, sq]) => {
+      if (e <= s) return;
+      const c = [cls, sq].filter(Boolean).join(' ');
+      const t = esc(text.slice(s - a, e - a));
+      html += c ? `<span class="${c}">${t}</span>` : t;
+    });
+  }
+  if (diag && diag.start >= line.length) html += `<span class="eol sq-${diag.severity}"> </span>`;
+  return html;
+}
+
+function paint(text, diags) {
+  const lines = text.split('\n');
+  const byLine = new Map();
+  for (const d of diags) if (!byLine.has(d.line)) byLine.set(d.line, d);
+  $('hl').innerHTML = lines.map((l, i) => renderLine(l, byLine.get(i))).join('\n') + '\n';
+  const caretLine = text.slice(0, code.selectionStart).split('\n').length;
+  $('gutter').innerHTML = lines.map((_, i) => (i + 1 === caretLine ? `<b>${i + 1}</b>` : i + 1)).join('\n');
+  code.rows = lines.length;
+
+  const errors = diags.filter((d) => d.severity === 'error').length;
+  const warnings = diags.length - errors;
+  $('st-problems').textContent = `⊗ ${errors}   ⚠ ${warnings}`;
+  $('st-problems').setAttribute('aria-label', `${errors} errors, ${warnings} warnings`);
+  $('tab').classList.toggle('has-err', errors > 0);
+  $('tab').classList.toggle('has-warn', warnings > 0);
+  $('tab-count').textContent = diags.length ? String(diags.length) : '';
+}
+
+function updateCaret() {
+  const before = code.value.slice(0, code.selectionStart).split('\n');
+  $('st-pos').textContent = `Ln ${before.length}, Col ${before[before.length - 1].length + 1}`;
+}
+
+// ---------- explanations: same path as the extension -> core -> panel ----------
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const post = (m) => window.postMessage(m, '*');
+let reported = new Map(); // key -> card id, like connection.ts
+
+function toMarkdown(e) {
+  const parts = ['**' + e.headline + '**', e.cause, '**Fix:** ' + e.fix];
+  if (e.snippet) parts.push('```python\n' + e.snippet + '\n```');
+  return parts.join('\n\n');
+}
+
+async function explainCard(id, d, lines, animate) {
+  const base = Explainer.lookupInLibrary(d.message, 'python') || Explainer.explainUnknown(d.message, 'python');
+  const suggestion = Explainer.suggestFix(d.message, lines[d.line], lines.join('\n'));
+  const text = toMarkdown({ ...base, ...suggestion });
+  post({ type: 'start', id, title: d.message, language: 'python', location: `${FILE}:${d.line + 1}`, source: 'Pylance' });
+  if (animate && !reduceMotion) {
+    await sleep(400);
+    for (const word of text.match(/\S+\s*/g) || []) {
+      if (!reported.has(id.slice(5))) return; // fixed while it was still writing
+      post({ type: 'chunk', id, delta: word });
+      await sleep(16);
+    }
+  }
+  post({ type: 'explanation', id, text });
+}
+
+function sync(animate) {
+  const text = code.value;
+  const lines = text.split('\n');
+  const next = new Map();
+  for (const d of check(text)) {
+    const key = `${d.line}:${d.start}:${d.message}`;
+    next.set(key, 'card:' + key);
+  }
+  for (const [key, id] of reported) if (!next.has(key)) post({ type: 'resolve', id });
+  const fresh = [...next].filter(([key]) => !reported.has(key));
+  reported = next;
+  // Newest card goes on top, so add bottom-to-top to keep them in file order.
+  const byKey = new Map(check(text).map((d) => [`${d.line}:${d.start}:${d.message}`, d]));
+  fresh.reverse().forEach(([key, id], n) => setTimeout(() => explainCard(id, byKey.get(key), lines, animate), animate ? n * 250 : 0));
+}
+
+let timer;
+function onEdit() {
+  paint(code.value, check(code.value));
+  updateCaret();
+  clearTimeout(timer);
+  timer = setTimeout(() => sync(true), PATIENCE_MS);
+}
+
+code.addEventListener('input', onEdit);
+code.addEventListener('keyup', () => { updateCaret(); paint(code.value, check(code.value)); });
+code.addEventListener('click', updateCaret);
+code.addEventListener('keydown', (e) => {
+  if (e.key !== 'Tab') return; // Tab indents, like an editor
+  e.preventDefault();
+  code.setRangeText('    ', code.selectionStart, code.selectionEnd, 'end');
+  onEdit();
+});
+
+$('reset').addEventListener('click', () => {
+  code.value = EXAMPLE;
+  onEdit();
+  clearTimeout(timer);
+  sync(true);
+});
+$('clear').addEventListener('click', () => {
+  for (const id of reported.values()) post({ type: 'resolve', id });
+  reported = new Map();
+});
+
+// Open in a working state: the example file, squiggled and explained.
+code.value = EXAMPLE;
+paint(code.value, check(code.value));
+sync(false);
+})();
+</script>
+</body>
+</html>

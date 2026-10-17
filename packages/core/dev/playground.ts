@@ -1,8 +1,8 @@
 // Builds the browser playground (the Devpost demo link) from the real code:
 // the core's library + classifier, and the extension's panel.css / panel.js.
-// Run:  npm run playground   ->  out/playground.html
+// Run:  npm run playground   ->  docs/index.html (served by GitHub Pages from /docs)
 import { buildSync } from 'esbuild';
-import { readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
 const root = join(__dirname, '../../..');
@@ -29,6 +29,5 @@ html = fill(html, '/*PANEL_CSS*/', read('packages/vscode/media/panel.css'));
 html = fill(html, '/*LIB_JS*/', lib);
 html = fill(html, '/*PANEL_JS*/', read('packages/vscode/media/panel.js'));
 
-mkdirSync(join(root, 'out'), { recursive: true });
-writeFileSync(join(root, 'out/playground.html'), html);
-console.log('wrote out/playground.html (' + Math.round(html.length / 1024) + ' KB)');
+writeFileSync(join(root, 'docs/index.html'), html);
+console.log('wrote docs/index.html (' + Math.round(html.length / 1024) + ' KB)');
