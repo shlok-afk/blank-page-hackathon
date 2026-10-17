@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { SAMPLES } from './samples';
+import { WelcomePanel } from './welcome';
 
 // Messages the panel understands. `chunk` and `explanation` match the core protocol,
 // so UI 1 can forward core messages straight through.
@@ -70,10 +71,18 @@ async function playSamples(panel: ExplanationPanel) {
 
 export function activate(context: vscode.ExtensionContext) {
   const panel = new ExplanationPanel(context.extensionUri);
+  const welcome = new WelcomePanel(context.extensionUri);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('errorExplainer.panel', panel, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
     vscode.commands.registerCommand('errorExplainer.playSamples', () => playSamples(panel)),
+    vscode.commands.registerCommand('errorExplainer.showWelcome', () => welcome.show()),
   );
+
+  // First run: open the welcome & setup screen so people know what they just installed.
+  if (!context.globalState.get('errorExplainer.welcomeSeen')) {
+    welcome.show();
+    context.globalState.update('errorExplainer.welcomeSeen', true);
+  }
 }
