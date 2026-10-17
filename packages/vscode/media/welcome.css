@@ -8,6 +8,19 @@
 body.welcome {
   display: flex;
   justify-content: center;
+  /* Controls are draggable, so the surrounding chrome must not be selectable —
+     otherwise a slider drag grabs text instead. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ...but prose the user might want to copy stays selectable. */
+.card > p,
+.steps li,
+.bullets li,
+.preview-body p {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 #page {
@@ -29,6 +42,7 @@ body.welcome {
 .hero img {
   filter: drop-shadow(0 0 16px color-mix(in srgb, var(--accent) 55%, transparent));
   animation: float 4s ease-in-out infinite;
+  -webkit-user-drag: none;
 }
 .hero h1 {
   margin: 0;
@@ -186,12 +200,15 @@ input[type='range']::-moz-range-thumb {
   box-shadow: 0 2px 6px rgb(0 0 0 / 0.35);
 }
 
-/* Floating label bubble, positioned exactly like the thumb it follows. */
+/* Floating label bubble, positioned exactly like the thumb it follows. The
+   horizontal anchor flips to the left/right edge at the extremes (see data-edge)
+   so the pill can never hang off the track. */
 .bubble {
   position: absolute;
   bottom: calc(100% + 4px);
   left: calc(11px + (100% - 22px) * var(--p, 0.5));
-  transform: translateX(-50%) translateY(4px) scale(0.96);
+  --tx: -50%;
+  transform: translate(var(--tx), 4px) scale(0.96);
   font-size: 0.72em;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -212,13 +229,16 @@ input[type='range']::-moz-range-thumb {
   white-space: nowrap;
   transition: opacity 0.15s, transform 0.15s var(--ease), left 0s;
 }
+.bubble[data-edge='start'] { --tx: 0%; }
+.bubble[data-edge='end'] { --tx: -100%; }
 .track-wrap:hover .bubble,
 input[type='range']:focus-visible + .bubble {
   opacity: 1;
-  transform: translateX(-50%) translateY(0) scale(1);
+  transform: translate(var(--tx), 0) scale(1);
 }
 
-/* Named stops under the track; the nearest one lights up. */
+/* Named stops under the track; the nearest one lights up. The end labels anchor
+   to the container edge instead of centering, so they never spill outside. */
 .ticks {
   position: relative;
   height: 12px;
@@ -235,6 +255,8 @@ input[type='range']:focus-visible + .bubble {
   white-space: nowrap;
   transition: color 0.2s;
 }
+.ticks span:first-child { left: 0; transform: none; }
+.ticks span:last-child { left: 100%; transform: translateX(-100%); }
 .ticks span.on {
   color: var(--accent);
   font-weight: 700;
@@ -242,21 +264,47 @@ input[type='range']:focus-visible + .bubble {
 
 .slider-foot {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 6px 10px;
   margin-top: 8px;
 }
 .ends {
   display: flex;
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   justify-content: space-between;
+  gap: 12px;
   font-size: 0.72em;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--muted);
 }
-.ends em { font-style: normal; }
+.ends em { font-style: normal; white-space: nowrap; }
+
+/* Quiet explanatory tag, e.g. "Only used in Auto mode". */
+.note {
+  flex: none;
+  font-size: 0.72em;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--fg) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fg) 14%, transparent);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+}
+.note[hidden] { display: none; }
+
+/* A slider that has no effect in the current mode dims out, but stays usable. */
+.slider.idle .track-wrap,
+.slider.idle .ticks,
+.slider.idle .ends,
+.slider.idle .readout {
+  opacity: 0.45;
+  transition: opacity 0.2s;
+}
+.slider.idle .note { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
 
 /* Live "what this actually means" chip, e.g. "Flags: errors + warnings". */
 .chip {
@@ -362,13 +410,26 @@ input[type='range']:focus-visible + .bubble {
 }
 .toggle input { accent-color: var(--vscode-button-background, #0078d4); width: 16px; height: 16px; cursor: pointer; }
 
-/* "Saved ✓" flash next to the control that just changed. */
+/* Row that holds a discrete control plus its always-reserved "Saved" slot. */
+.control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* "Saved ✓" is always in the layout with its width reserved, and only ever
+   animates opacity — so saving never reflows anything or moves a control. */
 .saved {
+  flex: none;
+  min-width: 5.4em;
   font-size: 0.8em;
   color: var(--vscode-testing-iconPassed, #2ea043);
+  text-align: right;
+  white-space: nowrap;
   opacity: 0;
-  animation: fade 1.4s ease;
+  pointer-events: none;
 }
+.saved.show { animation: fade 1.4s ease; }
 @keyframes fade { 10%, 70% { opacity: 1; } 100% { opacity: 0; } }
 
 /* ---- Buttons ---- */
@@ -422,4 +483,11 @@ footer strong { color: var(--fg); font-weight: 600; }
 @media (max-width: 560px) {
   .setting, .slider-head { flex-direction: column; align-items: flex-start; }
   .slider-foot { flex-wrap: wrap; }
+  .saved { min-width: 4.2em; text-align: left; }
+}
+
+/* On very narrow panels, drop the interior stop names so they can't collide.
+   The bubble and readout still name the nearest stop. */
+@media (max-width: 480px) {
+  .ticks span:not(:first-child):not(:last-child) { display: none; }
 }

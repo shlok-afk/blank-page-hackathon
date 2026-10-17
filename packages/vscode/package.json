@@ -48,7 +48,7 @@
           "minimum": 0,
           "maximum": 5000,
           "default": 1500,
-          "markdownDescription": "How long to wait for an error to stop changing before explaining it, in milliseconds. Errors flicker while you type, so a little patience avoids noise. **Instant** is 0; **Deep zen** is 5s."
+          "markdownDescription": "How long to wait for an error to stop changing before explaining it, in milliseconds. Errors flicker while you type, so a little patience avoids noise. **Instant** is 0; **Deep zen** is 5s. Only used when `errorExplainer.explainOn` is set to `auto`."
         },
         "errorExplainer.narration": {
           "type": "number",
@@ -73,7 +73,7 @@
             "Only when you save the file.",
             "Only when you ask (hover or right-click → Explain this error)."
           ],
-          "description": "When explanations appear."
+          "description": "What starts an explanation: automatically, only when you save, or only when you ask. `errorExplainer.patience` only applies to `auto`."
         },
         "errorExplainer.source": {
           "type": "string",

@@ -54,6 +54,10 @@ export class WelcomePanel {
       }
     });
 
+    // `.saved` is always in the DOM (reserving its width) and only fades in, so
+    // a save never reflows the layout or moves a slider out from under the pointer.
+    const saved = '<span class="saved" role="status" aria-live="polite"></span>';
+
     panel.webview.html = `<!doctype html>
 <html lang="en">
 <head>
@@ -99,7 +103,10 @@ export class WelcomePanel {
 
     <section class="card">
       <h2>Tune the explainer</h2>
-      <p class="hint">Slide to taste — every pick is saved instantly and shows up as a real setting (search <code>errorExplainer</code> in Settings).</p>
+      <p class="hint">
+        The sliders shape <em>how</em> it behaves; the options underneath say <em>when</em> it's allowed to speak.
+        Every pick is saved instantly as a real setting (search <code>errorExplainer</code> in Settings).
+      </p>
 
       <div class="slider" data-setting="sensitivity">
         <div class="slider-head">
@@ -108,6 +115,7 @@ export class WelcomePanel {
             <p>How trigger-happy it is. Low: quiet until an error is clearly real. High: speaks up early and often.</p>
           </div>
           <span class="readout" aria-hidden="true"></span>
+          ${saved}
         </div>
         <div class="track-wrap">
           <input type="range" min="0" max="100" step="1" value="50" data-setting="sensitivity" data-format="score" aria-label="Sensitivity, from lenient to strict">
@@ -130,9 +138,10 @@ export class WelcomePanel {
         <div class="slider-head">
           <div class="setting-text">
             <h3>Patience</h3>
-            <p>How long it waits for an error to stop changing before explaining it. Errors flicker while you type.</p>
+            <p>How long an error must sit still before it's explained. Errors flicker while you type.</p>
           </div>
           <span class="readout" aria-hidden="true"></span>
+          ${saved}
         </div>
         <div class="track-wrap">
           <input type="range" min="0" max="5000" step="250" value="1500" data-setting="patience" data-format="ms" aria-label="Patience, from instant to very patient">
@@ -146,6 +155,7 @@ export class WelcomePanel {
         </div>
         <div class="slider-foot">
           <span class="ends"><em>Impatient</em><em>Very patient</em></span>
+          <span class="note" data-note="patience" hidden>Only used in Auto mode</span>
         </div>
       </div>
 
@@ -156,6 +166,7 @@ export class WelcomePanel {
             <p>How much hand-holding in explanations, from terse to "you've never seen a variable before".</p>
           </div>
           <span class="readout" aria-hidden="true"></span>
+          ${saved}
         </div>
         <div class="track-wrap">
           <input type="range" min="0" max="100" step="1" value="50" data-setting="narration" data-format="score" aria-label="Narration, from terse to hand-holding">
@@ -200,6 +211,7 @@ export class WelcomePanel {
             <p>How much surrounding code travels with the error. More context, sharper explanations.</p>
           </div>
           <span class="readout" aria-hidden="true"></span>
+          ${saved}
         </div>
         <div class="track-wrap">
           <input type="range" min="0" max="30" step="1" value="10" data-setting="contextLines" data-format="lines" aria-label="Context, from just the error line to a whole function">
@@ -219,13 +231,16 @@ export class WelcomePanel {
 
       <div class="setting">
         <div class="setting-text">
-          <h3>When to explain</h3>
-          <p>Automatically, on save, or only when you ask.</p>
+          <h3>Trigger</h3>
+          <p>What starts an explanation. <strong>Patience</strong> above only applies to Auto.</p>
         </div>
-        <div class="seg" role="radiogroup" aria-label="When to explain" data-setting="explainOn">
-          <button type="button" role="radio" data-value="auto">Auto</button>
-          <button type="button" role="radio" data-value="save">On save</button>
-          <button type="button" role="radio" data-value="click">On request</button>
+        <div class="control">
+          <div class="seg" role="radiogroup" aria-label="What starts an explanation" data-setting="explainOn">
+            <button type="button" role="radio" data-value="auto">Auto</button>
+            <button type="button" role="radio" data-value="save">On save</button>
+            <button type="button" role="radio" data-value="click">On request</button>
+          </div>
+          ${saved}
         </div>
       </div>
 
@@ -234,11 +249,14 @@ export class WelcomePanel {
           <h3>Explanation source</h3>
           <p>Where explanations come from. The built-in library and cache are always tried first.</p>
         </div>
-        <div class="seg" role="radiogroup" aria-label="Explanation source" data-setting="source">
-          <button type="button" role="radio" data-value="server">Free server</button>
-          <button type="button" role="radio" data-value="builtin">Built-in only</button>
-          <button type="button" role="radio" data-value="ollama">Local AI</button>
-          <button type="button" role="radio" data-value="apiKey">My API key</button>
+        <div class="control">
+          <div class="seg" role="radiogroup" aria-label="Explanation source" data-setting="source">
+            <button type="button" role="radio" data-value="server">Free server</button>
+            <button type="button" role="radio" data-value="builtin">Built-in only</button>
+            <button type="button" role="radio" data-value="ollama">Local AI</button>
+            <button type="button" role="radio" data-value="apiKey">My API key</button>
+          </div>
+          ${saved}
         </div>
       </div>
 
@@ -247,10 +265,13 @@ export class WelcomePanel {
           <h3>Status bar indicator</h3>
           <p>Shows <em>Explainer connected</em> / <em>offline</em> at the bottom of VS Code.</p>
         </div>
-        <label class="toggle">
-          <input type="checkbox" data-setting="statusBar">
-          <span>On</span>
-        </label>
+        <div class="control">
+          <label class="toggle">
+            <input type="checkbox" data-setting="statusBar">
+            <span>On</span>
+          </label>
+          ${saved}
+        </div>
       </div>
     </section>
 

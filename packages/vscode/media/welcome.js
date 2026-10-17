@@ -12,7 +12,7 @@ const previews = [...document.querySelectorAll('.preview-body')];
 // Precise readouts: the slider is continuous, so show the exact number.
 const fmt = {
   score: (v) => String(v),
-  ms: (v) => (v >= 1000 ? +(v / 1000).toFixed(2) + 's' : `${v}ms`),
+  ms: (v) => (v >= 1000 ? `${+(v / 1000).toFixed(2)}s` : `${v}ms`),
   lines: (v) => `${v} ${v === 1 ? 'line' : 'lines'}`,
 };
 
@@ -21,7 +21,13 @@ const derived = {
   sensitivity: (v) =>
     v < 40 ? 'Flags: hard errors only' : v < 70 ? 'Flags: errors + warnings' : 'Flags: errors, warnings & info',
   contextLines: (v) =>
-    v === 0 ? 'Nothing extra is sent' : v <= 10 ? 'A small snippet is sent' : v <= 20 ? 'A generous slice is sent' : 'A whole function is sent',
+    v === 0
+      ? 'Nothing extra is sent'
+      : v <= 10
+        ? 'A small snippet is sent'
+        : v <= 20
+          ? 'A generous slice is sent'
+          : 'A whole function is sent',
 };
 
 const pctOf = (input, v) => (v - input.min) / (input.max - input.min);
@@ -43,9 +49,12 @@ function updateSlider(slider) {
   const stop = nearest(ticks, v);
   for (const t of ticks) t.classList.toggle('on', t === stop);
 
-  // Bubble rides the thumb and names the stop you're nearest.
+  // Bubble rides the thumb and names the stop you're nearest. Anchored to its
+  // edge at the extremes so the pill can never spill past the track.
   const bubble = slider.querySelector('.bubble');
   bubble.textContent = stop.textContent;
+  bubble.dataset.edge = p < 0.08 ? 'start' : p > 0.92 ? 'end' : '';
+
   slider.querySelector('.readout').textContent = `${(fmt[input.dataset.format] ?? fmt.score)(v)} · ${stop.textContent}`;
 
   const chip = slider.querySelector('.chip');
@@ -60,17 +69,25 @@ function setSliderValue(slider, value) {
   updateSlider(slider);
 }
 
-// Flash a "Saved ✓" hint next to the control the user just touched.
-function flashSaved(el) {
-  if (!el) return;
-  const old = el.parentElement.querySelector('.saved');
-  if (old) old.remove();
-  const tag = document.createElement('span');
-  tag.className = 'saved';
-  tag.textContent = 'Saved ✓';
-  tag.setAttribute('role', 'status');
-  el.insertAdjacentElement('afterend', tag);
-  setTimeout(() => tag.remove(), 1400);
+// Patience only means something when explanations run automatically, so dim it
+// (and say why) whenever the trigger is something else.
+function syncPatience(explainOn) {
+  const slider = document.querySelector('.slider[data-setting="patience"]');
+  if (!slider) return;
+  const idle = explainOn !== 'auto';
+  slider.classList.toggle('idle', idle);
+  const note = slider.querySelector('.note');
+  if (note) note.hidden = !idle;
+}
+
+// Flash the always-present "Saved ✓" — opacity only, so nothing reflows and the
+// slider stays exactly where the pointer left it.
+function flashSaved(root) {
+  const tag = root?.querySelector('.saved');
+  if (!tag) return;
+  tag.classList.remove('show');
+  void tag.offsetWidth; // restart the animation
+  tag.classList.add('show');
 }
 
 // Apply settings pushed by the extension host.
@@ -83,6 +100,7 @@ function apply(values) {
   }
   const bar = document.querySelector('input[data-setting="statusBar"]');
   if (bar) bar.checked = Boolean(values.statusBar);
+  syncPatience(values.explainOn);
 }
 
 // Dragging live-updates the glass; releasing commits to VS Code settings.
@@ -102,7 +120,7 @@ document.addEventListener('change', (e) => {
   const box = e.target.closest('input[data-setting]');
   if (!box) return;
   post({ type: 'set', key: box.dataset.setting, value: box.checked });
-  flashSaved(box.closest('.toggle'));
+  flashSaved(box.closest('.control'));
 });
 
 document.addEventListener('click', (e) => {
@@ -111,7 +129,8 @@ document.addEventListener('click', (e) => {
     const seg = b.closest('.seg');
     for (const other of seg.querySelectorAll('button')) other.setAttribute('aria-checked', String(other === b));
     post({ type: 'set', key: seg.dataset.setting, value: b.dataset.value });
-    flashSaved(seg);
+    if (seg.dataset.setting === 'explainOn') syncPatience(b.dataset.value);
+    flashSaved(seg.closest('.control'));
     return;
   }
   const id = e.target.closest('button')?.id;
@@ -123,4 +142,5 @@ document.addEventListener('click', (e) => {
 // Paint once at defaults so nothing is blank before the host answers, then ask
 // for the real settings.
 for (const slider of sliders) updateSlider(slider);
+syncPatience('auto');
 post({ type: 'ready' });
