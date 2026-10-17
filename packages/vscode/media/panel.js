@@ -53,6 +53,7 @@ const terminalTitle = (s) => {
 // VS Code language ids → display names; unknown ids show as-is.
 const LANGS = { python: 'Python', typescript: 'TypeScript', typescriptreact: 'TSX', javascript: 'JavaScript', javascriptreact: 'JSX' };
 
+const host = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
 const list = /** @type {HTMLElement} */ (document.getElementById('list'));
 const cards = new Map();
 
@@ -81,6 +82,20 @@ function addCopyButtons(c) {
   }
 }
 
+// "Fix it for me": the host applies the fix and answers with a `fixed` message.
+function addFixButton(c, id) {
+  if (!host) return; // only a host that can edit code can fix it
+  const row = document.createElement('div');
+  row.className = 'fix-row';
+  row.innerHTML = '<button type="button" class="fix">Fix it for me</button><span class="fix-note" role="status"></span>';
+  row.querySelector('.fix').addEventListener('click', (e) => {
+    e.currentTarget.disabled = true;
+    e.currentTarget.textContent = 'Fixing…';
+    host.postMessage({ type: 'fix', id });
+  });
+  c.body.append(row);
+}
+
 list.addEventListener('click', (e) => {
   const b = e.target.closest('.copy');
   if (!b) return;
@@ -105,6 +120,15 @@ function setStreaming(c, on) {
 
 window.addEventListener('message', ({ data: m }) => {
   if (!m || !m.id) return;
+  if (m.type === 'fixed') {
+    const row = cards.get(m.id)?.el.querySelector('.fix-row');
+    if (!row) return;
+    const b = row.querySelector('.fix');
+    b.textContent = m.ok ? 'Fixed ✓' : 'Fix it for me';
+    b.disabled = m.ok;
+    row.querySelector('.fix-note').textContent = m.note;
+    return;
+  }
   if (m.type === 'resolve') {
     const gone = cards.get(m.id);
     if (gone) {
@@ -136,12 +160,12 @@ window.addEventListener('message', ({ data: m }) => {
     c.text = m.text;
     c.body.innerHTML = md(c.text);
     addCopyButtons(c);
+    addFixButton(c, m.id);
     setStreaming(c, false);
   }
 });
 
 // Tell the VS Code host we're listening (no-op elsewhere).
-const host = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
 host?.postMessage({ type: 'ready' });
 document.getElementById('open-settings')?.addEventListener('click', () => host?.postMessage({ type: 'openSettings' }));
 

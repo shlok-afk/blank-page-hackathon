@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { SAMPLES } from './samples';
-import { connectToCore } from './connection';
+import { connectToCore, diagnosticId } from './connection';
+import { ruleFix } from './fixes';
 
 // Messages the panel understands. `chunk` and `explanation` match the core protocol,
 // so UI 1 can forward core messages straight through.
@@ -8,7 +9,8 @@ export type PanelMessage =
   | { type: 'start'; id: string; title: string; language?: string; location?: string; source?: string }
   | { type: 'chunk'; id: string; delta: string }
   | { type: 'explanation'; id: string; text: string }
-  | { type: 'resolve'; id: string }; // the error is gone: remove its card
+  | { type: 'resolve'; id: string } // the error is gone: remove its card
+  | { type: 'fixed'; id: string; ok: boolean; note: string }; // answer to the card's "Fix it for me" button
 
 class ExplanationPanel implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
@@ -27,6 +29,8 @@ class ExplanationPanel implements vscode.WebviewViewProvider {
     view.webview.onDidReceiveMessage((m) => {
       if (m?.type === 'ready') this.markReady();
       if (m?.type === 'openSettings') vscode.commands.executeCommand('squiggle.showWelcome');
+      if (m?.type === 'fix' && typeof m.id === 'string')
+        fixError(m.id).then((r) => this.post({ type: 'fixed', id: m.id, ...r }));
     });
     view.onDidDispose(() => {
       this.view = undefined;
@@ -83,6 +87,46 @@ async function playSamples(panel: ExplanationPanel) {
     await sleep(400); // fake "thinking" time
     await streamText(panel, s.id, s.text);
   }
+}
+
+const UNDO = process.platform === 'darwin' ? 'Cmd+Z' : 'Ctrl+Z';
+
+// "Fix it for me": our own rule first (predictable, made for beginners), then the
+// editor's own quick fix. Applied as a normal edit, so undo works, and the line is
+// shown so the student sees what changed.
+async function fixError(id: string): Promise<{ ok: boolean; note: string }> {
+  const found = vscode.languages.getDiagnostics()
+    .flatMap(([uri, ds]) => ds.map((d) => ({ uri, d })))
+    .find(({ uri, d }) => diagnosticId(uri, d) === id);
+  if (!found) return { ok: false, note: 'This error is no longer in your code.' };
+  const { uri, d } = found;
+  const doc = await vscode.workspace.openTextDocument(uri);
+  const lines = doc.getText().split(/\r?\n/);
+
+  let label: string | undefined;
+  const rule = ruleFix(d.message, lines, d.range.start.line, d.range.start.character, doc.languageId);
+  if (rule) {
+    const edit = new vscode.WorkspaceEdit();
+    edit.replace(uri, doc.lineAt(rule.line).range, rule.text);
+    if (await vscode.workspace.applyEdit(edit)) label = rule.label;
+  } else {
+    const actions = (await vscode.commands.executeCommand<vscode.CodeAction[]>(
+      'vscode.executeCodeActionProvider', uri, d.range, vscode.CodeActionKind.QuickFix.value)) ?? [];
+    const fits = actions.filter((a) =>
+      (a.edit || a.command) &&
+      !/ignore|disable|suppress/i.test(a.title) && // "silence the error" isn't a fix
+      (!a.diagnostics || a.diagnostics.some((x) => x.message === d.message)));
+    const action = fits.find((a) => a.isPreferred) ?? fits[0];
+    if (action) {
+      if (action.edit) await vscode.workspace.applyEdit(action.edit);
+      if (action.command) await vscode.commands.executeCommand(action.command.command, ...(action.command.arguments ?? []));
+      label = action.title;
+    }
+  }
+  if (!label) return { ok: false, note: "There's no safe automatic fix for this one. The steps above will get you there." };
+
+  await vscode.window.showTextDocument(doc, { selection: doc.lineAt(rule?.line ?? d.range.start.line).range, preview: false });
+  return { ok: true, note: `${label}. Press ${UNDO} in the editor to undo.` };
 }
 
 // Settings UI filtered to our contributes.configuration block.

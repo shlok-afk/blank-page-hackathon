@@ -31,6 +31,7 @@ Every explanation has the same three parts:
 - **Familiar error titles:** each error is shown the way a terminal prints it, with its language, file, line and source.
 - **Tunable:** sliders for patience before explaining, how much hand-holding you want, and how much nearby code is used.
 - **One-click copy** on every code example.
+- **Fix it for me:** one click applies a safe fix, such as a typo'd name, a missing colon or curly quotes, or VS Code's own quick fix. The changed line is highlighted, and undo works as normal.
 - **Native look:** colors come from your VS Code theme (light, dark or high-contrast).
 - **Accessible:** works with screen readers and reduced motion, and everything is reachable by keyboard.
 
@@ -72,7 +73,7 @@ We built Squiggle in TypeScript: a VS Code extension, a Node.js core, and a WebS
 
 **AI declaration**
 - **Building it:** we used Claude Code (Anthropic) to help with scaffolding, UI work and writing library entries. The team reviewed and committed every change.
-- **Inside the product:** Squiggle uses no AI. Every explanation comes from our hand-written library and rules, and nothing leaves your computer. Squiggle never writes or changes your code: it explains, and you make the fix.
+- **Inside the product:** Squiggle uses no AI. Every explanation comes from our hand-written library and rules, and nothing leaves your computer. Squiggle only changes your code when you click **Fix it for me**, and that fix comes from simple rules or VS Code's own quick fixes, never AI.
 
 ---
 

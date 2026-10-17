@@ -149,7 +149,7 @@ How we answer each part of the rubric: the claim we make, the evidence we show, 
 - **It doesn't write or change the user's code.** It explains; the student makes the fix. That's the point.
 
 **How we used AI to build it**
-- The team used Claude Code for scaffolding, UI work and drafting library entries, with the team reviewing and committing every change.
+- The team used Claude Code for scaffolding, UI work and drafting library entries, with the team reviewing and c5ommitting every change.
 
 ---
 

@@ -29,6 +29,11 @@ const typingIdleMs = () =>
 
 export type Connection = { stop: () => void };
 
+// A card's id. Stable for the same error, which lets the panel update an existing
+// card instead of stacking a new one every time you type.
+export const diagnosticId = (uri: vscode.Uri, d: vscode.Diagnostic) =>
+  [uri.fsPath, d.range.start.line + 1, d.range.start.character + 1, d.message].join(':');
+
 export function connectToCore(post: (message: any) => void): Connection {
   let ws: WebSocket | undefined;
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
@@ -49,10 +54,7 @@ export function connectToCore(post: (message: any) => void): Connection {
   const keyFor = (d: vscode.Diagnostic) =>
     (d.range.start.line + 1) + ':' + (d.range.start.character + 1) + ':' + d.message;
 
-  // Stable for the same error, which lets the panel update an existing
-  // card instead of stacking a new one every time you type.
-  const idFor = (doc: vscode.TextDocument, d: vscode.Diagnostic) =>
-    [doc.uri.fsPath, d.range.start.line + 1, d.range.start.character + 1, d.message].join(':');
+  const idFor = (doc: vscode.TextDocument, d: vscode.Diagnostic) => diagnosticId(doc.uri, d);
 
   const sendDiagnostic = (doc: vscode.TextDocument, d: vscode.Diagnostic) => {
     // VS Code counts lines and columns from 0. The core counts from 1.
