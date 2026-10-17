@@ -4,14 +4,28 @@
   "description": "Explains errors in plain language.",
   "version": "0.0.1",
   "private": true,
-  "engines": { "vscode": "^1.85.0" },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
   "main": "./out/extension.js",
   "contributes": {
     "viewsContainers": {
-      "secondarySidebar": [{ "id": "errorExplainer", "title": "Error Explainer", "icon": "media/icon.svg" }]
+      "secondarySidebar": [
+        {
+          "id": "errorExplainer",
+          "title": "Error Explainer",
+          "icon": "media/icon.svg"
+        }
+      ]
     },
     "views": {
-      "errorExplainer": [{ "type": "webview", "id": "errorExplainer.panel", "name": "Explanations" }]
+      "errorExplainer": [
+        {
+          "type": "webview",
+          "id": "errorExplainer.panel",
+          "name": "Explanations"
+        }
+      ]
     },
     "commands": [
       {
@@ -23,7 +37,11 @@
     ],
     "menus": {
       "view/title": [
-        { "command": "errorExplainer.playSamples", "when": "view == errorExplainer.panel", "group": "navigation" }
+        {
+          "command": "errorExplainer.playSamples",
+          "when": "view == errorExplainer.panel",
+          "group": "navigation"
+        }
       ]
     }
   },
@@ -34,6 +52,10 @@
   "devDependencies": {
     "@types/node": "^20.11.0",
     "@types/vscode": "^1.85.0",
+    "@types/ws": "^8.18.2",
     "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "ws": "^8.22.0"
   }
 }

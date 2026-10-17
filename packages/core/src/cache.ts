@@ -13,7 +13,9 @@ let memory: Record<string, Cached> | null = null;
 function load(): Record<string, Cached> {
   if (memory) return memory;
   try {
-    memory = JSON.parse(readFileSync(FILE, 'utf8'));
+    const parsed = JSON.parse(readFileSync(FILE, 'utf8'));
+    // A hand-edited or truncated file can be valid JSON but not an object.
+    memory = parsed && typeof parsed === 'object' ? parsed : {};
   } catch {
     memory = {};
   }

@@ -4,7 +4,7 @@ export const pythonErrors: LibraryEntry[] = [
   {
     id: 'py-none-subscript',
     language: 'python',
-    pattern: /'NoneType' object is not subscriptable/,
+    pattern: /is not subscriptable/,
     headline: "You're indexing something that is None",
     cause: 'The variable used with [ ] actually holds None, not a list or dict.',
     fix: 'Print that variable on the line before. Whatever sets it either never ran or returned nothing.',
@@ -12,7 +12,7 @@ export const pythonErrors: LibraryEntry[] = [
   {
     id: 'py-none-attribute',
     language: 'python',
-    pattern: /'NoneType' object has no attribute/,
+    pattern: /has no attribute|not a known attribute of|cannot access attribute/,
     headline: "You're calling a method on something that is None",
     cause: 'You expected an object, but the variable is None.',
     fix: 'Find where the variable is assigned - something returned None when you expected a value.',
@@ -20,7 +20,7 @@ export const pythonErrors: LibraryEntry[] = [
   {
     id: 'py-name-not-defined',
     language: 'python',
-    pattern: /NameError: name/,
+    pattern: /NameError: name|is not defined/,
     headline: "You used a name that doesn't exist yet",
     cause: 'You misspelled a variable or function, or used it before defining it.',
     fix: 'Check the spelling, and make sure the line that creates it runs before this one.',
@@ -52,7 +52,7 @@ export const pythonErrors: LibraryEntry[] = [
   {
     id: 'py-modulenotfound',
     language: 'python',
-    pattern: /ModuleNotFoundError|No module named/,
+    pattern: /ModuleNotFoundError|No module named|could not be resolved/,
     headline: "That package isn't installed",
     cause: 'Python cannot find the module you imported.',
     fix: 'Install it, e.g. `pip install requests`. If it is your own file, check the name and folder.',

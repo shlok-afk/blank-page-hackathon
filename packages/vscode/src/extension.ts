@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { SAMPLES } from './samples';
+import { connectToCore } from './connection';
 
 // Messages the panel understands. `chunk` and `explanation` match the core protocol,
 // so UI 1 can forward core messages straight through.
@@ -76,4 +77,8 @@ export function activate(context: vscode.ExtensionContext) {
     }),
     vscode.commands.registerCommand('errorExplainer.playSamples', () => playSamples(panel)),
   );
+
+  // The whole backend integration: forward whatever the core sends to the panel.
+  const conn = connectToCore((m) => panel.post(m));
+  context.subscriptions.push({ dispose: () => conn.stop() });
 }

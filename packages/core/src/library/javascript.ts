@@ -111,7 +111,7 @@ export const typescriptErrors: LibraryEntry[] = [
   {
     id: 'ts-argument-type',
     language: 'typescript',
-    pattern: /is not assignable to parameter of type/,
+    pattern: /is not assignable to parameter of type|cannot be assigned to parameter/,
     headline: "You passed the wrong type of value into that function",
     cause: 'The function expects one type of value and you gave it another.',
     fix: 'Convert it - Number(x), String(x) - or fix the function signature to accept what you passed.',
@@ -123,6 +123,14 @@ export const typescriptErrors: LibraryEntry[] = [
     headline: 'That value has the wrong type for this variable',
     cause: 'You assigned one type where another was expected.',
     fix: 'Check the declared type, then convert the value or widen the type to match.',
+  },
+  {
+    id: 'ts-module-not-found',
+    language: 'typescript',
+    pattern: /Cannot find module|Could not find a declaration file/,
+    headline: 'That package is not installed, or TypeScript cannot see it',
+    cause: 'TypeScript resolved the import and found nothing at that path.',
+    fix: 'Run npm install. If it has no types of its own, add @types/ for it, or declare the module yourself.',
   },
   {
     id: 'ts-missing-property-obj',
