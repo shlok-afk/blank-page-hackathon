@@ -16,6 +16,7 @@ export const javascriptErrors: LibraryEntry[] = [
     headline: 'You used a property of something that is undefined or null',
     cause: "The object you're reaching into doesn't exist yet.",
     fix: 'Find what is supposed to create it and confirm that ran. Optional chaining (obj?.prop) stops the crash.',
+    snippet: 'const name = user?.profile?.name;',
   },
   {
     id: 'js-not-defined',
@@ -56,6 +57,7 @@ export const javascriptErrors: LibraryEntry[] = [
     headline: 'That port is already being used',
     cause: 'Another copy of your program is still running and holding the port.',
     fix: 'Stop the old process (Ctrl+C) before starting a new one, or pick a different port.',
+    snippet: 'npx kill-port 3000',
   },
   {
     id: 'js-stack-overflow',
@@ -72,6 +74,7 @@ export const javascriptErrors: LibraryEntry[] = [
     headline: "You tried to parse text that isn't valid JSON",
     cause: 'The string is empty or cut off - often a failed request returned nothing.',
     fix: 'Print the raw string before parsing it.',
+    snippet: 'if (!res.ok) throw new Error(`HTTP ${res.status}`);\nconst data = await res.json();',
   },
   {
     id: 'js-const-reassign',
@@ -80,6 +83,7 @@ export const javascriptErrors: LibraryEntry[] = [
     headline: 'You tried to change a value declared with const',
     cause: "const means the variable can't be reassigned.",
     fix: 'Use let if it needs to change. const is fine for values you only read.',
+    snippet: 'let count = 0;\ncount += 1;',
   },
 ];
 
@@ -99,6 +103,7 @@ export const typescriptErrors: LibraryEntry[] = [
     headline: 'TypeScript is warning that this value might not exist yet',
     cause: 'The value could be undefined at this point, and TypeScript wants you to handle that.',
     fix: 'Check it first: `if (value) { ... }` - or use a default with `value ?? fallback`.',
+    snippet: 'const safe = value ?? fallback;',
   },
   {
     id: 'ts-cannot-find-name',
@@ -111,7 +116,7 @@ export const typescriptErrors: LibraryEntry[] = [
   {
     id: 'ts-argument-type',
     language: 'typescript',
-    pattern: /is not assignable to parameter of type/,
+    pattern: /is not assignable to parameter of type|cannot be assigned to parameter/,
     headline: "You passed the wrong type of value into that function",
     cause: 'The function expects one type of value and you gave it another.',
     fix: 'Convert it - Number(x), String(x) - or fix the function signature to accept what you passed.',
@@ -123,6 +128,14 @@ export const typescriptErrors: LibraryEntry[] = [
     headline: 'That value has the wrong type for this variable',
     cause: 'You assigned one type where another was expected.',
     fix: 'Check the declared type, then convert the value or widen the type to match.',
+  },
+  {
+    id: 'ts-module-not-found',
+    language: 'typescript',
+    pattern: /Cannot find module|Could not find a declaration file/,
+    headline: 'That package is not installed, or TypeScript cannot see it',
+    cause: 'TypeScript resolved the import and found nothing at that path.',
+    fix: 'Run npm install. If it has no types of its own, add @types/ for it, or declare the module yourself.',
   },
   {
     id: 'ts-missing-property-obj',

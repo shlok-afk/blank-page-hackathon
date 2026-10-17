@@ -5,6 +5,7 @@ import { explainUnknown } from '../src/classify';
 import { cacheKey, cacheGet, cacheSet } from '../src/cache';
 import { explain } from '../src/explain';
 import { onFileSaved, onError } from '../src/pipeline';
+import { toMarkdown } from '../src/render';
 
 let passed = 0;
 let failed = 0;
@@ -99,6 +100,9 @@ async function main() {
   check('carries relatedSave through untouched', libResult.relatedSave === '3s after you saved x.py');
   check('returns all four fields',
     !!libResult.headline && !!libResult.cause && !!libResult.fix && 'relatedSave' in libResult);
+  check('a library fix carries a copy-paste snippet', !!libResult.snippet);
+  check('the snippet renders as a copyable code block',
+    toMarkdown(libResult, 'python').includes('```python\n' + libResult.snippet + '\n```'));
 
   const unknownResult = await explain(
     { message: 'SomeNeverSeenError ' + Date.now(), file: 'y.ts', line: 9, language: 'typescript' },

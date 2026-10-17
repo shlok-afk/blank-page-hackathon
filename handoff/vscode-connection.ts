@@ -17,7 +17,9 @@
 // core not running yet) is handled below.
 
 import * as vscode from 'vscode';
-import WebSocket from 'ws';
+// The extension's tsconfig has no esModuleInterop, so this must be a
+// namespace/require import rather than a default import.
+import WebSocket = require('ws');
 
 const CORE_URL = 'ws://localhost:4321';
 const RETRY_MS = 1500;

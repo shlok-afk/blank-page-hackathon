@@ -18,3 +18,30 @@ python | AttributeError: 'NoneType' object has no attribute 'foo'
 python | ZeroDivisionError: division by zero
 python | ModuleNotFoundError: No module named 'nonexistent_module_xyz'
 python | ValueError: invalid literal for int() with base 10: 'not a number'
+
+# --- python, added with the snippet library ---
+python | TypeError: 'NoneType' object is not iterable
+python | UnboundLocalError: cannot access local variable 'total' where it is not associated with a value
+python | SyntaxError: expected ':'
+python | SyntaxError: unterminated string literal (detected at line 3)
+python | SyntaxError: '(' was never closed
+python | TabError: inconsistent use of tabs and spaces in indentation
+python | TypeError: list indices must be integers or slices, not str
+python | ImportError: cannot import name 'foo' from 'bar'
+python | AttributeError: module 'random' has no attribute 'randint'
+python | ValueError: too many values to unpack (expected 2)
+python | TypeError: greet() missing 1 required positional argument: 'name'
+python | TypeError: Dog.bark() takes 1 positional argument but 2 were given
+python | TypeError: 'list' object is not callable
+python | TypeError: 'int' object is not iterable
+python | TypeError: 'float' object cannot be interpreted as an integer
+python | TypeError: 'str' object does not support item assignment
+python | TypeError: unhashable type: 'list'
+python | RuntimeError: dictionary changed size during iteration
+python | RecursionError: maximum recursion depth exceeded
+python | json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+python | PermissionError: [Errno 13] Permission denied: 'out.txt'
+python | ValueError: could not convert string to float: 'abc'
+python | Import "requests" could not be resolved
+python | Object of type "None" is not subscriptable
+python | "total" is possibly unbound
