@@ -12,6 +12,7 @@ export type RenderInput = {
   line: number;
   language: string;
   source?: string;
+  narration?: number;
 };
 
 // VS Code language ids -> something a human reads. Unknown ids pass through.
@@ -42,11 +43,29 @@ function errorTypeOf(message: string): string {
   return m ? m[1] : '';
 }
 
-export function toMarkdown(e: Explanation, language = ''): string {
+// The narration slider's stops (see the welcome screen). A value snaps to the
+// nearest one, exactly like the slider's label does.
+export type Depth = 'pro' | 'balanced' | 'friendly' | 'baby';
+const STOPS: Array<[number, Depth]> = [[0, 'pro'], [33, 'balanced'], [66, 'friendly'], [100, 'baby']];
+export function depthOf(narration = 33): Depth {
+  return STOPS.reduce((best, s) => (Math.abs(s[0] - narration) < Math.abs(best[0] - narration) ? s : best))[1];
+}
+
+const REASSURANCE = [
+  "Don't worry: this is one of the most common errors there is, and everyone hits it while learning.",
+  'Errors like this are a normal part of coding. Even experienced programmers see this one all the time.',
+  "You're doing fine. Reading an error like this is how everyone learns a new language.",
+];
+
+export function toMarkdown(e: Explanation, language = '', depth: Depth = 'balanced'): string {
   const parts: string[] = [];
+  // Rule-based guesses have no beginner wording; they fall back to the cause.
+  const plain = e.plain ?? e.cause;
 
   parts.push('**' + e.headline + '**');
-  parts.push(e.cause);
+  if (depth === 'balanced') parts.push(e.cause);
+  if (depth === 'friendly' || depth === 'baby') parts.push(plain);
+  if (depth === 'baby' && e.plain) parts.push('**Why it happened:** ' + e.cause);
   parts.push('**Fix:** ' + e.fix);
 
   // A fenced block gets a Copy button in the panel.
@@ -55,6 +74,8 @@ export function toMarkdown(e: Explanation, language = ''): string {
   // The save correlation is the whole point of the product - give it
   // its own paragraph so it is never buried.
   if (e.relatedSave) parts.push(e.relatedSave);
+
+  if (depth === 'baby') parts.push(REASSURANCE[e.headline.length % REASSURANCE.length]);
 
   return parts.join('\n\n');
 }
@@ -68,7 +89,7 @@ export function toDisplay(input: RenderInput, explanation: Explanation): Display
     language: languageName(input.language),
     location,
     source: input.source || errorTypeOf(input.message) || '',
-    text: toMarkdown(explanation, input.language),
+    text: toMarkdown(explanation, input.language, depthOf(input.narration)),
   };
 }
 

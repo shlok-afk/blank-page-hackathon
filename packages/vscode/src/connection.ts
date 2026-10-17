@@ -23,7 +23,9 @@ const CORE_URL = 'ws://localhost:4321';
 const RETRY_MS = 1500;
 // Hold off while the user is typing: `pri`, `prit`, `pritn` are each a different
 // "error" mid-word. Only check a file once it's been quiet this long (or on save).
-const TYPING_IDLE_MS = 4_000;
+// Read on every keystroke, so changing it in Settings applies immediately.
+const typingIdleMs = () =>
+  vscode.workspace.getConfiguration('squiggle').get<number>('patience', 1500);
 
 export type Connection = { stop: () => void };
 
@@ -57,6 +59,10 @@ export function connectToCore(post: (message: any) => void): Connection {
     // Forget this and every line number in the demo is off by one.
     const line = d.range.start.line + 1;
     const column = d.range.start.character + 1;
+    const config = vscode.workspace.getConfiguration('squiggle');
+    const around = config.get<number>('contextLines', 10);
+    const first = Math.max(0, d.range.start.line - around);
+    const last = Math.min(doc.lineCount - 1, d.range.start.line + around);
 
     sendRaw({
       type: 'error.reported',
@@ -68,6 +74,9 @@ export function connectToCore(post: (message: any) => void): Connection {
       language: doc.languageId,     // 'python', 'typescriptreact', ...
       severity: d.severity === vscode.DiagnosticSeverity.Error ? 'error' : 'warning',
       source: d.source,             // 'Pylance', 'ts(2339)', ...
+      narration: config.get<number>('narration', 33),
+      lineText: doc.lineAt(d.range.start.line).text,   // lets the core hand back this exact line, fixed
+      context: around ? doc.getText(new vscode.Range(first, 0, last, doc.lineAt(last).text.length)) : '',
     });
   };
 
@@ -152,7 +161,7 @@ export function connectToCore(post: (message: any) => void): Connection {
       if (e.contentChanges.length === 0) return;
       const key = e.document.uri.toString();
       clearTimeout(typing.get(key));
-      typing.set(key, setTimeout(() => settle(e.document.uri), TYPING_IDLE_MS));
+      typing.set(key, setTimeout(() => settle(e.document.uri), typingIdleMs()));
     }),
     vscode.workspace.onDidSaveTextDocument((doc) => {
       sendRaw({ type: 'file.saved', file: doc.uri.fsPath });

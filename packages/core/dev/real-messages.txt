@@ -45,3 +45,68 @@ python | ValueError: could not convert string to float: 'abc'
 python | Import "requests" could not be resolved
 python | Object of type "None" is not subscriptable
 python | "total" is possibly unbound
+
+# --- python, library extension (3.10+ wording) ---
+python | TypeError: object of type 'NoneType' has no len()
+python | TypeError: 'int' object is not subscriptable
+python | TypeError: object of type 'int' has no len()
+python | SyntaxError: invalid character '“' (U+201C)
+python | SyntaxError: invalid syntax. Maybe you meant '==' or ':=' instead of '='?
+python | SyntaxError: cannot assign to function call here. Maybe you meant '==' instead of '='?
+python | SyntaxError: cannot assign to literal here. Maybe you meant '==' instead of '='?
+python | SyntaxError: 'return' outside function
+python | SyntaxError: 'break' outside loop
+python | SyntaxError: positional argument follows keyword argument
+python | SyntaxError: non-default argument follows default argument
+python | TypeError: greet() got an unexpected keyword argument 'nmae'
+python | TypeError: Dog.__init__() got multiple values for argument 'name'
+python | TypeError: 'module' object is not callable
+python | TypeError: argument of type 'int' is not iterable
+python | TypeError: '<' not supported between instances of 'str' and 'int'
+python | ValueError: I/O operation on closed file.
+python | UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte
+python | urllib.error.URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1006)>
+python | requests.exceptions.ConnectionError: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: / (Caused by NewConnectionError('Failed to establish a new connection: [Errno 61] Connection refused'))
+python | ValueError: math domain error
+python | IsADirectoryError: [Errno 21] Is a directory: 'data'
+python | FileExistsError: [Errno 17] File exists: 'out'
+python | AttributeError: 'str' object has no attribute 'foo'
+
+# --- captured from node 26 ---
+javascript | TypeError: Cannot set properties of undefined (setting 'x')
+javascript | TypeError: 5 is not iterable
+javascript | ReferenceError: Cannot access 'x' before initialization
+javascript | TypeError: 5 is not a constructor
+javascript | TypeError: Cannot destructure property 'a' of 'undefined' as it is undefined.
+javascript | SyntaxError: Unexpected token '<', "<html>" is not valid JSON
+javascript | SyntaxError: Unexpected end of JSON input
+javascript | RangeError: Invalid array length
+javascript | SyntaxError: Identifier 'a' has already been declared
+javascript | SyntaxError: Invalid or unexpected token
+javascript | SyntaxError: missing ) after argument list
+javascript | SyntaxError: await is only valid in async functions and the top level bodies of modules
+javascript | TypeError: Cannot read properties of null (reading 'foo')
+javascript | ReferenceError: require is not defined in ES module scope, you can use import instead
+javascript | TypeError: fetch failed
+javascript | SyntaxError: Cannot use import statement outside a module
+javascript | Error: connect ECONNREFUSED 127.0.0.1:3000
+javascript | Error: listen EACCES: permission denied 0.0.0.0:80
+javascript | Access to fetch at 'http://api.example.com/' from origin 'http://localhost:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+
+# --- typescript, library extension ---
+typescript | 'el' is possibly 'null'.
+typescript | Expected 2 arguments, but got 1.
+typescript | No overload matches this call.
+typescript | Type '{ name: string; }' is missing the following properties from type 'User': age, email
+typescript | Property 'age' is missing in type '{ name: string; }' but required in type 'User'.
+typescript | Element implicitly has an 'any' type because expression of type 'string' can't be used to index type '{ a: number; }'.
+typescript | Parameter 'x' implicitly has an 'any' type.
+typescript | Module '"./util"' has no exported member 'helper'.
+typescript | Module '"./util"' has no default export.
+typescript | Cannot assign to 'count' because it is a constant.
+typescript | Property 'name' has no initializer and is not definitely assigned in the constructor.
+typescript | Not all code paths return a value.
+typescript | Cannot find module './missing' or its corresponding type declarations.
+typescript | TypeError: Cannot read properties of undefined (reading 'length')
+python | Expected module name
+python | Expected one or more symbol names after "import"

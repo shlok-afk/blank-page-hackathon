@@ -84,14 +84,18 @@ function addCopyButtons(c) {
 list.addEventListener('click', (e) => {
   const b = e.target.closest('.copy');
   if (!b) return;
-  navigator.clipboard.writeText(b.parentElement.querySelector('code').textContent).then(() => {
-    b.textContent = 'Copied ✓';
-    b.classList.add('done');
-    setTimeout(() => {
-      b.textContent = 'Copy';
-      b.classList.remove('done');
-    }, 1500);
-  });
+  const code = b.parentElement.querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(
+    () => {
+      b.textContent = 'Copied ✓';
+      b.classList.add('done');
+      setTimeout(() => {
+        b.textContent = 'Copy';
+        b.classList.remove('done');
+      }, 1500);
+    },
+    () => getSelection().selectAllChildren(code), // clipboard blocked: select it so Cmd/Ctrl+C works
+  );
 });
 
 function setStreaming(c, on) {
@@ -106,7 +110,7 @@ window.addEventListener('message', ({ data: m }) => {
     if (gone) {
       cards.delete(m.id);
       gone.el.classList.add('leaving');
-      setTimeout(() => gone.el.remove(), 250); // timer, not animationend: reduced motion has no animation
+      setTimeout(() => gone.el.remove(), 300); // timer, not animationend: reduced motion has no animation
     }
     return;
   }
@@ -137,6 +141,8 @@ window.addEventListener('message', ({ data: m }) => {
 });
 
 // Tell the VS Code host we're listening (no-op elsewhere).
-if (typeof acquireVsCodeApi === 'function') acquireVsCodeApi().postMessage({ type: 'ready' });
+const host = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+host?.postMessage({ type: 'ready' });
+document.getElementById('open-settings')?.addEventListener('click', () => host?.postMessage({ type: 'openSettings' }));
 
 if (typeof module === 'object') module.exports = { md, terminalTitle }; // for node self-check

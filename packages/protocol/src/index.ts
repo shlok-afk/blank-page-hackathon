@@ -21,6 +21,9 @@ export type ErrorReportedMessage = {
   language: string;      // 'typescript', 'python', ...
   severity: string;      // 'error' | 'warning'
   source?: string;       // optional: 'Pylance', 'ts(2339)' - shown in the panel
+  narration?: number;    // explanation depth: 0 (terse) to 100 (hand-holding), default 33 (Balanced)
+  lineText?: string;     // the line the error is on, for a line-specific fix
+  context?: string;      // nearby lines (squiggle.contextLines), to spot misspelled names
 };
 
 export type PluginMessage = HelloMessage | FileSavedMessage | ErrorReportedMessage;
@@ -30,6 +33,7 @@ export type PluginMessage = HelloMessage | FileSavedMessage | ErrorReportedMessa
 export type Explanation = {
   headline: string;              // one-line plain-English summary
   cause: string;                 // why it happened
+  plain?: string;                // the same idea in beginner words (library entries only)
   fix: string;                   // what to change
   snippet?: string;              // copy-pasteable code for the fix
   relatedSave: string | null;    // "You saved auth.py 12 seconds before this error appeared.", or null

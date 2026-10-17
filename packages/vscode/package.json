@@ -1,6 +1,6 @@
 {
-  "name": "error-explainer-vscode",
-  "displayName": "Error Explainer",
+  "name": "squiggle-vscode",
+  "displayName": "Squiggle",
   "description": "Explains errors in plain language.",
   "version": "0.0.1",
   "private": true,
@@ -13,76 +13,76 @@
     "viewsContainers": {
       "secondarySidebar": [
         {
-          "id": "errorExplainer",
-          "title": "Error Explainer",
+          "id": "squiggle",
+          "title": "Squiggle",
           "icon": "media/icon.svg"
         }
       ]
     },
     "views": {
-      "errorExplainer": [
+      "squiggle": [
         {
           "type": "webview",
-          "id": "errorExplainer.panel",
+          "id": "squiggle.panel",
           "name": "Explanations"
         }
       ]
     },
     "commands": [
       {
-        "command": "errorExplainer.playSamples",
+        "command": "squiggle.playSamples",
         "title": "Play Sample Explanations",
-        "category": "Error Explainer",
+        "category": "Squiggle",
         "icon": "$(play)"
       },
       {
-        "command": "errorExplainer.showWelcome",
+        "command": "squiggle.showWelcome",
         "title": "Open Welcome & Setup",
-        "category": "Error Explainer",
+        "category": "Squiggle",
         "icon": "$(gear)"
       }
     ],
     "menus": {
       "view/title": [
         {
-          "command": "errorExplainer.playSamples",
-          "when": "view == errorExplainer.panel",
+          "command": "squiggle.showWelcome",
+          "when": "view == squiggle.panel",
           "group": "navigation"
         }
       ]
     },
     "configuration": {
-      "title": "Error Explainer",
+      "title": "Squiggle",
       "properties": {
-        "errorExplainer.sensitivity": {
+        "squiggle.sensitivity": {
           "type": "number",
           "minimum": 0,
           "maximum": 100,
           "default": 50,
           "markdownDescription": "How trigger-happy the explainer is, from **Zen** (0 — stays quiet until an error is clearly real) to **Nitpicky** (100 — speaks up early and often). Higher values also start covering warnings and info hints."
         },
-        "errorExplainer.patience": {
+        "squiggle.patience": {
           "type": "number",
           "minimum": 0,
           "maximum": 5000,
           "default": 1500,
-          "markdownDescription": "How long to wait for an error to stop changing before explaining it, in milliseconds. Errors flicker while you type, so a little patience avoids noise. **Instant** is 0; **Deep zen** is 5s. Only used when `errorExplainer.explainOn` is set to `auto`."
+          "markdownDescription": "How long to wait for an error to stop changing before explaining it, in milliseconds. Errors flicker while you type, so a little patience avoids noise. **Instant** is 0; **Deep zen** is 5s. Only used when `squiggle.explainOn` is set to `auto`."
         },
-        "errorExplainer.narration": {
+        "squiggle.narration": {
           "type": "number",
           "minimum": 0,
           "maximum": 100,
-          "default": 50,
+          "default": 33,
           "markdownDescription": "How much hand-holding in explanations, from **Pro** (0 — terse: what it means and the fix) to **Baby** (100 — spells everything out, with reassurance)."
         },
-        "errorExplainer.contextLines": {
+        "squiggle.contextLines": {
           "type": "number",
           "minimum": 0,
           "maximum": 30,
           "default": 10,
           "markdownDescription": "How many lines of surrounding code are sent along with an error to make the explanation better. 0 sends just the error line — nothing extra leaves your computer."
         },
-        "errorExplainer.explainOn": {
+        "squiggle.explainOn": {
           "type": "string",
           "enum": ["auto", "save", "click"],
           "default": "auto",
@@ -91,21 +91,9 @@
             "Only when you save the file.",
             "Only when you ask (hover or right-click → Explain this error)."
           ],
-          "description": "What starts an explanation: automatically, only when you save, or only when you ask. `errorExplainer.patience` only applies to `auto`."
+          "description": "What starts an explanation: automatically, only when you save, or only when you ask. `squiggle.patience` only applies to `auto`."
         },
-        "errorExplainer.source": {
-          "type": "string",
-          "enum": ["server", "builtin", "ollama", "apiKey"],
-          "default": "server",
-          "enumDescriptions": [
-            "Free hosted explanations (we pay the bill). Best quality, zero setup.",
-            "Built-in library only: instant, free, works offline. Covers common errors only.",
-            "Local AI via Ollama: private, code never leaves your computer. Needs a decent machine.",
-            "Your own API key: for people who already have one."
-          ],
-          "description": "Where explanations come from. The built-in library and cache are always tried first."
-        },
-        "errorExplainer.statusBar": {
+        "squiggle.statusBar": {
           "type": "boolean",
           "default": true,
           "description": "Show a connected / offline indicator for the core in the VS Code status bar."

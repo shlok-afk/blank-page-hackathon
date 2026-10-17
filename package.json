@@ -1,5 +1,5 @@
 {
-  "name": "error-explainer",
+  "name": "squiggle",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -9,7 +9,8 @@
     "check": "tsc --noEmit",
     "verify": "tsx packages/core/dev/verify.ts",
     "e2e": "tsx packages/core/dev/e2e.ts",
-    "coverage": "tsx packages/core/dev/coverage.ts"
+    "coverage": "tsx packages/core/dev/coverage.ts",
+    "playground": "tsx packages/core/dev/playground.ts"
   },
   "keywords": [],
   "author": "",

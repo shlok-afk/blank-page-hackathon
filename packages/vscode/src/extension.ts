@@ -24,7 +24,10 @@ class ExplanationPanel implements vscode.WebviewViewProvider {
     const nonce = Math.random().toString(36).slice(2);
 
     view.webview.options = { enableScripts: true, localResourceRoots: [media] };
-    view.webview.onDidReceiveMessage((m) => m?.type === 'ready' && this.markReady());
+    view.webview.onDidReceiveMessage((m) => {
+      if (m?.type === 'ready') this.markReady();
+      if (m?.type === 'openSettings') vscode.commands.executeCommand('squiggle.showWelcome');
+    });
     view.onDidDispose(() => {
       this.view = undefined;
       this.ready = new Promise<void>((r) => (this.markReady = r));
@@ -42,7 +45,8 @@ class ExplanationPanel implements vscode.WebviewViewProvider {
   <div class="empty">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>
     <strong>All clear</strong>
-    <p>When an error shows up in your code, a plain-language explanation will appear here.</p>
+    <p>When an error shows up in your code, a plain-language explanation will appear here, with a fix you can copy.</p>
+    <p class="hint">Want it quieter, chattier, or offline? <button type="button" class="link" id="open-settings">Open settings</button> or click the gear icon above.</p>
   </div>
   <script nonce="${nonce}" src="${asset('panel.js')}"></script>
 </body>
@@ -72,7 +76,7 @@ async function streamText(panel: ExplanationPanel, id: string, text: string) {
 }
 
 async function playSamples(panel: ExplanationPanel) {
-  await vscode.commands.executeCommand('errorExplainer.panel.focus');
+  await vscode.commands.executeCommand('squiggle.panel.focus');
   await panel.ready;
   for (const s of SAMPLES) {
     panel.post({ type: 'start', id: s.id, title: s.title, language: s.language, location: s.location, source: s.source });
@@ -81,7 +85,25 @@ async function playSamples(panel: ExplanationPanel) {
   }
 }
 
+// Settings UI filtered to our contributes.configuration block.
+const openSettings = () => vscode.commands.executeCommand('workbench.action.openSettings', 'squiggle');
+
+// Carries settings saved under the old `errorExplainer.*` name over to `squiggle.*`.
+async function migrateOldSettings() {
+  const old = vscode.workspace.getConfiguration('errorExplainer');
+  const cfg = vscode.workspace.getConfiguration('squiggle');
+  for (const key of ['sensitivity', 'patience', 'narration', 'contextLines', 'explainOn', 'statusBar']) {
+    const was = old.inspect(key);
+    const now = cfg.inspect(key);
+    if (was?.globalValue !== undefined && now?.globalValue === undefined)
+      await cfg.update(key, was.globalValue, vscode.ConfigurationTarget.Global);
+    if (was?.workspaceValue !== undefined && now?.workspaceValue === undefined && vscode.workspace.workspaceFolders)
+      await cfg.update(key, was.workspaceValue, vscode.ConfigurationTarget.Workspace);
+  }
+}
+
 export function activate(context: vscode.ExtensionContext) {
+  migrateOldSettings();
   const panel = new ExplanationPanel(context.extensionUri);
   const conn = connectToCore((m: PanelMessage) => {
     if (m.type === 'explanation') return streamText(panel, m.id, m.text);
@@ -89,10 +111,17 @@ export function activate(context: vscode.ExtensionContext) {
     panel.post(m);
   });
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider('errorExplainer.panel', panel, {
+    vscode.window.registerWebviewViewProvider('squiggle.panel', panel, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
-    vscode.commands.registerCommand('errorExplainer.playSamples', () => playSamples(panel)),
+    vscode.commands.registerCommand('squiggle.playSamples', () => playSamples(panel)),
+    vscode.commands.registerCommand('squiggle.showWelcome', openSettings),
     { dispose: () => conn.stop() },
   );
+
+  // First run only: pop the settings open so people see what they can tune.
+  if (!context.globalState.get('setupShown')) {
+    context.globalState.update('setupShown', true);
+    openSettings();
+  }
 }

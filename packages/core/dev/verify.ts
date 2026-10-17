@@ -4,8 +4,10 @@ import { lookupInLibrary } from '../src/library/index';
 import { explainUnknown } from '../src/classify';
 import { cacheKey, cacheGet, cacheSet } from '../src/cache';
 import { explain } from '../src/explain';
+import { suggestFix } from '../src/suggest';
 import { onFileSaved, onError } from '../src/pipeline';
-import { toMarkdown } from '../src/render';
+import { toMarkdown, depthOf } from '../src/render';
+import { allEntries } from '../src/library/index';
 
 let passed = 0;
 let failed = 0;
@@ -104,10 +106,33 @@ async function main() {
   check('the snippet renders as a copyable code block',
     toMarkdown(libResult, 'python').includes('```python\n' + libResult.snippet + '\n```'));
 
+  // Narration depth: each slider stop gives a different explanation.
+  const at = (n: number) => toMarkdown(libResult, 'python', depthOf(n));
+  check('the four narration stops each read differently', new Set([0, 33, 66, 100].map(at)).size === 4);
+  check('pro skips the cause', !at(0).includes(libResult.cause));
+  check('friendly uses the beginner wording', at(66).includes(libResult.plain!) && !at(66).includes(libResult.cause));
+  check('baby has both, plus the most text', at(100).includes(libResult.plain!) && at(100).includes(libResult.cause)
+    && at(100).length > at(66).length);
+  check('every library entry has beginner wording', allEntries.every((e) => e.plain.length > 20));
+
   const unknownResult = await explain(
     { message: 'SomeNeverSeenError ' + Date.now(), file: 'y.ts', line: 9, language: 'typescript' },
   );
   check('an unknown error still gets an explanation', unknownResult.headline.length > 0);
+
+  section('4b. Line suggestions');
+  check('misspelled print is corrected in place',
+    suggestFix('"pritn" is not defined', '    pritn("hi")')?.snippet === '    print("hi")');
+  check('a misspelled variable is matched from nearby code',
+    suggestFix("NameError: name 'socre' is not defined", 'total = socre + 1', 'score = 0')?.snippet === 'total = score + 1');
+  check('a missing colon is added',
+    suggestFix('Expected ":"', 'for i in range(3)')?.snippet === 'for i in range(3):');
+  check('an empty from-import gets a template',
+    suggestFix('Expected one or more symbol names after "import"', 'from math import')?.snippet === 'from math import name_you_need');
+  check('no wild guess for a name nothing resembles',
+    suggestFix("'zqxwv' is not defined", 'zqxwv()') === undefined);
+  const withLine = await explain({ message: '"pritn" is not defined', file: 'a.py', line: 3, language: 'python', lineText: 'pritn(1)' });
+  check('explain() uses the line suggestion', withLine.snippet === 'print(1)' && withLine.fix.includes('`print`'));
 
   // ---------- 5. Pipeline ----------
   section('5. Pipeline - debounce and save correlation');

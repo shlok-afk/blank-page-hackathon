@@ -4,8 +4,8 @@ import { javascriptErrors, typescriptErrors } from './javascript';
 
 export const allEntries: LibraryEntry[] = [
   ...pythonErrors,
+  ...typescriptErrors, // before JS: TS files also match JS entries, the TS wording should win
   ...javascriptErrors,
-  ...typescriptErrors,
 ];
 
 // Editors label the same language a dozen ways: VS Code sends
@@ -35,6 +35,7 @@ function languageMatches(entryLang: string, incoming: string): boolean {
   const a = canonical(entryLang);
   const b = canonical(incoming);
   if (!b) return true;              // unknown language - try anything
+  if (a === 'javascript' && b.startsWith('typescript')) return true; // TS crashes at runtime with JS errors
   return b === a || b.includes(a);  // 'typescriptreact' also covers 'typescript'
 }
 

@@ -39,6 +39,9 @@ function sanitize(raw: any, index: number): ErrorReportedMessage {
     language: str(raw.language),
     severity: str(raw.severity, 'error'),
     source: str(raw.source) || undefined,
+    narration: num(raw.narration, 33),
+    lineText: str(raw.lineText) || undefined,
+    context: str(raw.context) || undefined,
   };
 }
 

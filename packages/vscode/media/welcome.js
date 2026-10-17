@@ -134,8 +134,8 @@ document.addEventListener('click', (e) => {
     return;
   }
   const id = e.target.closest('button')?.id;
-  if (id === 'play') post({ type: 'command', id: 'errorExplainer.playSamples' });
-  else if (id === 'settings') post({ type: 'command', id: 'workbench.action.openSettings', arg: 'errorExplainer' });
+  if (id === 'play') post({ type: 'command', id: 'squiggle.playSamples' });
+  else if (id === 'settings') post({ type: 'command', id: 'workbench.action.openSettings', arg: 'squiggle' });
   else if (id === 'done') post({ type: 'close' });
 });
 
