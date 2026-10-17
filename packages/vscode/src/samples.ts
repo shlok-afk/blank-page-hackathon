@@ -3,7 +3,9 @@ export const SAMPLES = [
   {
     id: 'sample-py-nameerror',
     title: "NameError: name 'pritn' is not defined",
-    location: 'main.py:4 · Pylance',
+    language: 'python',
+    location: 'main.py:4',
+    source: 'Pylance',
     text: `Python doesn't know anything called \`pritn\`. This is almost always a **typo**: you meant \`print\`.
 
 Python reads names exactly as written, so one swapped letter makes it look like a brand new variable that was never created.
@@ -17,8 +19,10 @@ print("Hello")   # right
   },
   {
     id: 'sample-ts-2339',
-    title: "Property 'lenght' does not exist on type 'string[]'",
-    location: 'src/list.ts:12 · ts(2339)',
+    title: "src/list.ts:12:19 - error TS2339: Property 'lenght' does not exist on type 'string[]'.",
+    language: 'typescript',
+    location: 'src/list.ts:12',
+    source: 'ts(2339)',
     text: `You're asking an array for a property called \`lenght\`, but arrays don't have one. TypeScript caught it **before** your code ran, which is why there's a red squiggle.
 
 The property you want is \`length\` (the "t" and "h" are swapped).
@@ -33,7 +37,9 @@ Tip: press **Ctrl+Space** after the dot to see every property that does exist.`,
   {
     id: 'sample-js-undefined-map',
     title: "TypeError: Cannot read properties of undefined (reading 'map')",
-    location: 'src/App.jsx:27 · runtime',
+    language: 'javascriptreact',
+    location: 'src/App.jsx:27',
+    source: 'runtime',
     text: `Your code called \`.map()\` on something that was \`undefined\`, meaning it had no value yet.
 
 This usually happens when:

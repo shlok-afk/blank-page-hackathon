@@ -1,12 +1,15 @@
-/* Every color reads VS Code's theme variables, so the panel follows the user's
-   theme (and live theme switches) automatically. Fallbacks apply outside VS Code. */
+/* Every color reads VS Code's theme variables, so the panel follows the user's chosen
+   theme (and live theme switches) automatically. Fallbacks will apply to editors other than VS Code. */
 :root {
   --fg: var(--vscode-foreground, #cccccc);
   --muted: var(--vscode-descriptionForeground, #9d9d9d);
-  --card-bg: var(--vscode-editorWidget-background, #252526);
   --border: var(--vscode-widget-border, var(--vscode-panel-border, #80808040));
   --hc-border: var(--vscode-contrastBorder, transparent);
-  --accent: var(--vscode-editorError-foreground, #f14c4c);
+  --accent: var(--vscode-focusBorder, #0078d4);
+  /* terminal.background has no default in VS Code (the terminal uses the panel's), so mirror that. */
+  --term-bg: var(--vscode-terminal-background, var(--vscode-panel-background, #181818));
+  --term-fg: var(--vscode-terminal-foreground, #cccccc);
+  --term-red: var(--vscode-terminal-ansiRed, #f14c4c);
   --code-bg: var(--vscode-textCodeBlock-background, #0a0a0a66);
   --inline-code-fg: var(--vscode-textPreformat-foreground, #d7ba7d);
   --inline-code-bg: var(--vscode-textPreformat-background, #ffffff1a);
@@ -15,11 +18,12 @@
   --font-size: var(--vscode-font-size, 13px);
   --mono: var(--vscode-editor-font-family, ui-monospace, Menlo, Consolas, monospace);
   --mono-size: var(--vscode-editor-font-size, 13px);
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 body {
   margin: 0;
-  padding: 12px 16px;
+  padding: 14px 16px;
   color: var(--fg);
   background: var(--vscode-editor-background, #1e1e1e);
   font-family: var(--font);
@@ -29,36 +33,105 @@ body {
 /* Inside VS Code let the panel/sidebar background show through. */
 body[class*='vscode-'] { background: transparent; }
 
-#list { display: flex; flex-direction: column; gap: 12px; }
-#list:not(:empty) + .empty { display: none; }
-.empty { color: var(--muted); max-width: 60ch; }
-
-.card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  outline: 1px solid var(--hc-border);
-  border-left: 3px solid var(--accent);
-  border-radius: 6px;
-  padding: 10px 14px 12px;
-  max-width: 80ch;
+/* Soft ambient glow behind everything, in theme colors, so the glass cards have something to frost. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60% 40% at 0% 0%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%),
+    radial-gradient(50% 35% at 100% 30%, color-mix(in srgb, var(--term-red) 9%, transparent), transparent 70%);
 }
 
-header { margin-bottom: 6px; }
+#list { display: flex; flex-direction: column; gap: 14px; }
+#list:not(:empty) + .empty { display: none; }
+
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+  margin: 48px auto 0;
+  max-width: 34ch;
+  color: var(--muted);
+}
+.empty svg {
+  width: 40px;
+  height: 40px;
+  color: var(--accent);
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 60%, transparent));
+  animation: float 4s ease-in-out infinite;
+}
+.empty strong { color: var(--fg); font-size: 1.1em; }
+.empty p { margin: 0; }
+
+/* "Liquid glass": a translucent wash of the theme's text color (light on dark themes,
+   dark on light ones), a bright top edge, and a soft shadow. */
+.card {
+  --glass: var(--fg);
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--glass) 9%, transparent),
+    color-mix(in srgb, var(--glass) 3%, transparent)
+  );
+  backdrop-filter: blur(16px) saturate(160%);
+  border: 1px solid color-mix(in srgb, var(--glass) 12%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--glass) 20%, transparent),
+    0 6px 20px rgb(0 0 0 / 0.15);
+  outline: 1px solid var(--hc-border);
+  border-radius: 14px;
+  padding: 12px 14px 14px;
+  max-width: 80ch;
+  animation: rise 0.45s var(--ease) backwards;
+  transition: border-color 0.2s, transform 0.2s var(--ease), box-shadow 0.2s;
+}
+.card:hover {
+  border-color: color-mix(in srgb, var(--glass) 22%, transparent);
+  transform: translateY(-1px);
+}
+/* While the AI is writing, the card breathes with the theme's accent color. */
+.card.streaming {
+  animation: rise 0.45s var(--ease) backwards, glow 1.8s ease-in-out infinite alternate;
+}
+
+header { margin-bottom: 10px; }
+/* The error exactly as the terminal would print it. */
 .title {
   font-family: var(--mono);
   font-size: var(--mono-size);
-  font-weight: 600;
-  color: var(--accent);
+  color: var(--term-fg);
+  /* Soft tint of the theme's own terminal red, so it reads as "error" in any theme. */
+  background: color-mix(in srgb, var(--term-red) 14%, var(--term-bg));
+  border: 1px solid color-mix(in srgb, var(--term-red) 35%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--term-fg) 8%, transparent);
+  border-radius: 8px;
+  padding: 8px 12px;
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.loc { color: var(--muted); font-size: 0.9em; }
-.loc:empty { display: none; }
+.title .err { color: var(--term-red); font-weight: 600; }
+
+/* "Language: X   File: Y" — labels in the text color, values in terminal palette colors. */
+.meta { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; color: var(--fg); font-size: 0.9em; }
+.meta span:has(> :empty) { display: none; }
+.lang, .loc, .src { font-family: var(--mono); font-weight: 600; }
+.src { color: var(--fg); }
+.lang { color: var(--vscode-terminal-ansiMagenta, #bc3fbc); }
+.lang[data-lang='python'] { color: var(--vscode-terminal-ansiGreen, #0dbc79); }
+.lang[data-lang^='typescript'] { color: var(--vscode-terminal-ansiBlue, #2472c8); }
+.lang[data-lang^='javascript'] { color: var(--vscode-terminal-ansiYellow, #e5e510); }
+.loc { color: var(--vscode-terminal-ansiCyan, #11a8cd); }
 
 .body > :first-child { margin-top: 0; }
 .body > :last-child { margin-bottom: 0; }
 .body p, .body ul, .body ol { margin: 0.6em 0; }
 .body ul, .body ol { padding-left: 1.4em; }
+.body li::marker { color: var(--accent); }
 .body h3 { font-size: 1em; margin: 0.8em 0 0.3em; }
+.body strong { color: var(--vscode-textLink-foreground, var(--fg)); font-weight: 600; }
 
 .body code {
   font-family: var(--mono);
@@ -66,16 +139,16 @@ header { margin-bottom: 6px; }
   color: var(--inline-code-fg);
   background: var(--inline-code-bg);
   padding: 0.1em 0.35em;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 
 .body pre {
   position: relative;
   background: var(--code-bg);
   border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 10px 12px;
-  margin: 0.7em 0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin: 0.8em 0;
   overflow-x: auto;
 }
 .body pre code {
@@ -88,15 +161,38 @@ header { margin-bottom: 6px; }
 .body pre[data-lang]:not([data-lang=''])::before {
   content: attr(data-lang);
   position: absolute;
-  top: 4px;
-  right: 8px;
+  top: 6px;
+  right: 10px;
   font-family: var(--font);
-  font-size: 0.8em;
+  font-size: 0.75em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--muted);
+  transition: opacity 0.15s;
 }
 
+/* Copy button: swaps in for the language label on hover/focus. */
+.copy {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  font: 600 0.75em var(--font);
+  color: var(--vscode-button-foreground, #fff);
+  background: var(--vscode-button-background, #0078d4);
+  border: 0;
+  border-radius: 5px;
+  padding: 2px 8px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.15s var(--ease);
+}
+.body pre:hover .copy, .copy:focus-visible, .copy.done { opacity: 1; }
+.body pre:hover::before, .body pre:focus-within::before { opacity: 0; }
+.copy:hover { background: var(--vscode-button-hoverBackground, #026ec1); }
+.copy:active { transform: scale(0.95); }
+.copy:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+
 /* Blinking cursor at the end of text while the AI is still writing. */
-.streaming .body:empty::after,
 .streaming .body > :last-child::after,
 .streaming .body > pre:last-child code::after,
 .streaming .body > :is(ul, ol):last-child > li:last-child::after {
@@ -105,9 +201,25 @@ header { margin-bottom: 6px; }
   animation: blink 1s steps(1) infinite;
 }
 .streaming .body > :is(pre, ul, ol):last-child::after { content: none; }
-.streaming .body:empty::after { content: 'Thinking…'; color: var(--muted); }
+/* Shimmering "Thinking…" before the first words arrive. */
+.streaming .body:empty::after {
+  content: 'Thinking…';
+  color: transparent;
+  background: linear-gradient(90deg, var(--muted) 30%, var(--fg) 50%, var(--muted) 70%) 0 0 / 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: shimmer 1.4s linear infinite;
+}
 
+@keyframes rise { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
+@keyframes glow {
+  from { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass) 20%, transparent), 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent), 0 6px 20px rgb(0 0 0 / 0.15); }
+  to { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass) 20%, transparent), 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent), 0 0 22px color-mix(in srgb, var(--accent) 30%, transparent); }
+}
+@keyframes shimmer { to { background-position: -200% 0; } }
 @keyframes blink { 50% { opacity: 0; } }
+@keyframes float { 50% { transform: translateY(-4px); } }
+
 @media (prefers-reduced-motion: reduce) {
-  .streaming .body *::after { animation: none; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }

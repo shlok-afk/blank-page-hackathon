@@ -1,4 +1,3 @@
-// @ts-check
 // Host-agnostic: only listens for window "message" events, so the same file
 // works in a VS Code webview or an Electron window.
 
@@ -45,6 +44,15 @@ function md(src) {
     .join('');
 }
 
+// Color the error type red like a terminal does: `NameError:`, `error TS2339:`, `SyntaxError:`.
+const terminalTitle = (s) => {
+  const m = /\b(\w*Error|error(?: TS\d+)?)\b:?/.exec(s);
+  return m ? esc(s.slice(0, m.index)) + `<span class="err">${esc(m[0])}</span>` + esc(s.slice(m.index + m[0].length)) : esc(s);
+};
+
+// VS Code language ids → display names; unknown ids show as-is.
+const LANGS = { python: 'Python', typescript: 'TypeScript', typescriptreact: 'TSX', javascript: 'JavaScript', javascriptreact: 'JSX' };
+
 const list = /** @type {HTMLElement} */ (document.getElementById('list'));
 const cards = new Map();
 
@@ -53,13 +61,38 @@ function card(id) {
   if (!c) {
     const el = document.createElement('article');
     el.className = 'card';
-    el.innerHTML = '<header><div class="title"></div><div class="loc"></div></header><div class="body"></div>';
+    el.innerHTML =
+      '<header><div class="title"></div><div class="meta"><span>Language: <span class="lang"></span></span><span>File: <span class="loc"></span></span><span>Type: <span class="src"></span></span></div></header><div class="body"></div>';
     c = { el, body: el.querySelector('.body'), text: '' };
     cards.set(id, c);
+    list.prepend(el); // newest on top
   }
-  list.prepend(c.el); // newest on top
   return c;
 }
+
+function addCopyButtons(c) {
+  for (const pre of c.body.querySelectorAll('pre')) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'copy';
+    b.textContent = 'Copy';
+    b.setAttribute('aria-label', 'Copy code');
+    pre.append(b);
+  }
+}
+
+list.addEventListener('click', (e) => {
+  const b = e.target.closest('.copy');
+  if (!b) return;
+  navigator.clipboard.writeText(b.parentElement.querySelector('code').textContent).then(() => {
+    b.textContent = 'Copied ✓';
+    b.classList.add('done');
+    setTimeout(() => {
+      b.textContent = 'Copy';
+      b.classList.remove('done');
+    }, 1500);
+  });
+});
 
 function setStreaming(c, on) {
   c.el.classList.toggle('streaming', on);
@@ -70,10 +103,17 @@ window.addEventListener('message', ({ data: m }) => {
   if (!m || !m.id) return;
   const c = card(m.id);
   if (m.type === 'start') {
-    c.el.querySelector('.title').textContent = m.title ?? '';
+    c.el.querySelector('.title').innerHTML = terminalTitle(m.title ?? '');
+    const lang = c.el.querySelector('.lang');
+    lang.textContent = LANGS[m.language] ?? m.language ?? '';
+    lang.dataset.lang = m.language ?? '';
     c.el.querySelector('.loc').textContent = m.location ?? '';
+    c.el.querySelector('.src').textContent = m.source ?? '';
     c.text = '';
     c.body.innerHTML = '';
+    // Replays jump to the top and re-run the entrance animation.
+    c.el.remove();
+    list.prepend(c.el);
     setStreaming(c, true);
   } else if (m.type === 'chunk') {
     c.text += m.delta;
@@ -82,6 +122,7 @@ window.addEventListener('message', ({ data: m }) => {
   } else if (m.type === 'explanation') {
     c.text = m.text;
     c.body.innerHTML = md(c.text);
+    addCopyButtons(c);
     setStreaming(c, false);
   }
 });
@@ -89,4 +130,4 @@ window.addEventListener('message', ({ data: m }) => {
 // Tell the VS Code host we're listening (no-op elsewhere).
 if (typeof acquireVsCodeApi === 'function') acquireVsCodeApi().postMessage({ type: 'ready' });
 
-if (typeof module === 'object') module.exports = { md }; // for node self-check
+if (typeof module === 'object') module.exports = { md, terminalTitle }; // for node self-check

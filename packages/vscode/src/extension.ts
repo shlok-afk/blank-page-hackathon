@@ -4,7 +4,7 @@ import { SAMPLES } from './samples';
 // Messages the panel understands. `chunk` and `explanation` match the core protocol,
 // so UI 1 can forward core messages straight through.
 export type PanelMessage =
-  | { type: 'start'; id: string; title: string; location?: string }
+  | { type: 'start'; id: string; title: string; language?: string; location?: string; source?: string }
   | { type: 'chunk'; id: string; delta: string }
   | { type: 'explanation'; id: string; text: string };
 
@@ -37,7 +37,11 @@ class ExplanationPanel implements vscode.WebviewViewProvider {
 </head>
 <body>
   <main id="list" aria-live="polite"></main>
-  <p class="empty">No explanations yet. When an error shows up in your code, a plain-language explanation will appear here.</p>
+  <div class="empty">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>
+    <strong>All clear</strong>
+    <p>When an error shows up in your code, a plain-language explanation will appear here.</p>
+  </div>
   <script nonce="${nonce}" src="${asset('panel.js')}"></script>
 </body>
 </html>`;
@@ -54,7 +58,7 @@ async function playSamples(panel: ExplanationPanel) {
   await vscode.commands.executeCommand('errorExplainer.panel.focus');
   await panel.ready;
   for (const s of SAMPLES) {
-    panel.post({ type: 'start', id: s.id, title: s.title, location: s.location });
+    panel.post({ type: 'start', id: s.id, title: s.title, language: s.language, location: s.location, source: s.source });
     await sleep(400); // fake "thinking" time
     for (const word of s.text.match(/\S+\s*/g) ?? []) {
       panel.post({ type: 'chunk', id: s.id, delta: word });

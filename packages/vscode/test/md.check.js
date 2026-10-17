@@ -1,6 +1,6 @@
 // Run: node test/md.check.js — checks the panel's markdown renderer (escaping matters: AI text is untrusted).
 const assert = require('node:assert');
-globalThis.document = { getElementById: () => ({}) };
+globalThis.document = { getElementById: () => ({ addEventListener() {} }) };
 globalThis.window = { addEventListener() {} };
 const { md } = require('../media/panel.js');
 
@@ -11,3 +11,9 @@ assert.equal(md('- one\n- two'), '<ul><li>one</li><li>two</li></ul>');
 assert.equal(md('1. one\n2. two'), '<ol><li>one</li><li>two</li></ol>');
 assert.equal(md('Fix:\n\n```js\nlet a'), '<p>Fix:</p><pre data-lang="js"><code>let a</code></pre>'); // unclosed fence mid-stream
 console.log('md ok');
+
+const { terminalTitle } = require('../media/panel.js');
+assert.equal(terminalTitle("NameError: name 'x'"), `<span class="err">NameError:</span> name &#39;x&#39;`);
+assert.equal(terminalTitle('a.ts:1:2 - error TS2339: Nope'), 'a.ts:1:2 - <span class="err">error TS2339:</span> Nope');
+assert.equal(terminalTitle('<b>'), '&#60;b&#62;');
+console.log('title ok');
