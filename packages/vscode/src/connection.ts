@@ -162,7 +162,7 @@ export function connectToCore(
       // Catch up on whatever is already broken on screen. "On request" mode
       // stays silent until the user actually asks.
       for (const [uri] of vscode.languages.getDiagnostics()) {
-        syncUri(vscode.Uri.parse(uri), { send: settings.explainOn === 'auto' });
+        syncUri(uri, { send: settings.explainOn === 'auto' });
       }
     });
 
