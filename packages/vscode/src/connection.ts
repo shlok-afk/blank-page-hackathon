@@ -23,7 +23,9 @@ const CORE_URL = 'ws://localhost:4321';
 const RETRY_MS = 1500;
 // Hold off while the user is typing: `pri`, `prit`, `pritn` are each a different
 // "error" mid-word. Only check a file once it's been quiet this long (or on save).
-const TYPING_IDLE_MS = 4_000;
+// Read on every keystroke, so changing it in Settings applies immediately.
+const typingIdleMs = () =>
+  vscode.workspace.getConfiguration('errorExplainer').get<number>('patience', 1500);
 
 export type Connection = { stop: () => void };
 
@@ -152,7 +154,7 @@ export function connectToCore(post: (message: any) => void): Connection {
       if (e.contentChanges.length === 0) return;
       const key = e.document.uri.toString();
       clearTimeout(typing.get(key));
-      typing.set(key, setTimeout(() => settle(e.document.uri), TYPING_IDLE_MS));
+      typing.set(key, setTimeout(() => settle(e.document.uri), typingIdleMs()));
     }),
     vscode.workspace.onDidSaveTextDocument((doc) => {
       sendRaw({ type: 'file.saved', file: doc.uri.fsPath });

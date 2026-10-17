@@ -45,7 +45,7 @@
     "menus": {
       "view/title": [
         {
-          "command": "errorExplainer.playSamples",
+          "command": "errorExplainer.showWelcome",
           "when": "view == errorExplainer.panel",
           "group": "navigation"
         }

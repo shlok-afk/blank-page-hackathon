@@ -81,6 +81,9 @@ async function playSamples(panel: ExplanationPanel) {
   }
 }
 
+// Settings UI filtered to our contributes.configuration block.
+const openSettings = () => vscode.commands.executeCommand('workbench.action.openSettings', 'errorExplainer');
+
 export function activate(context: vscode.ExtensionContext) {
   const panel = new ExplanationPanel(context.extensionUri);
   const conn = connectToCore((m: PanelMessage) => {
@@ -93,6 +96,13 @@ export function activate(context: vscode.ExtensionContext) {
       webviewOptions: { retainContextWhenHidden: true },
     }),
     vscode.commands.registerCommand('errorExplainer.playSamples', () => playSamples(panel)),
+    vscode.commands.registerCommand('errorExplainer.showWelcome', openSettings),
     { dispose: () => conn.stop() },
   );
+
+  // First run only: pop the settings open so people see what they can tune.
+  if (!context.globalState.get('setupShown')) {
+    context.globalState.update('setupShown', true);
+    openSettings();
+  }
 }
