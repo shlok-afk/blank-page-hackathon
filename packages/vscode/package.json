@@ -1,0 +1,39 @@
+{
+  "name": "error-explainer-vscode",
+  "displayName": "Error Explainer",
+  "description": "Explains errors in plain language.",
+  "version": "0.0.1",
+  "private": true,
+  "engines": { "vscode": "^1.85.0" },
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "secondarySidebar": [{ "id": "errorExplainer", "title": "Error Explainer", "icon": "media/icon.svg" }]
+    },
+    "views": {
+      "errorExplainer": [{ "type": "webview", "id": "errorExplainer.panel", "name": "Explanations" }]
+    },
+    "commands": [
+      {
+        "command": "errorExplainer.playSamples",
+        "title": "Play Sample Explanations",
+        "category": "Error Explainer",
+        "icon": "$(play)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        { "command": "errorExplainer.playSamples", "when": "view == errorExplainer.panel", "group": "navigation" }
+      ]
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "watch": "tsc -w -p ."
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  }
+}

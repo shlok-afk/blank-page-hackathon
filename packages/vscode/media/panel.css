@@ -1,0 +1,113 @@
+/* Every color reads VS Code's theme variables, so the panel follows the user's
+   theme (and live theme switches) automatically. Fallbacks apply outside VS Code. */
+:root {
+  --fg: var(--vscode-foreground, #cccccc);
+  --muted: var(--vscode-descriptionForeground, #9d9d9d);
+  --card-bg: var(--vscode-editorWidget-background, #252526);
+  --border: var(--vscode-widget-border, var(--vscode-panel-border, #80808040));
+  --hc-border: var(--vscode-contrastBorder, transparent);
+  --accent: var(--vscode-editorError-foreground, #f14c4c);
+  --code-bg: var(--vscode-textCodeBlock-background, #0a0a0a66);
+  --inline-code-fg: var(--vscode-textPreformat-foreground, #d7ba7d);
+  --inline-code-bg: var(--vscode-textPreformat-background, #ffffff1a);
+  --cursor: var(--vscode-editorCursor-foreground, #aeafad);
+  --font: var(--vscode-font-family, system-ui, sans-serif);
+  --font-size: var(--vscode-font-size, 13px);
+  --mono: var(--vscode-editor-font-family, ui-monospace, Menlo, Consolas, monospace);
+  --mono-size: var(--vscode-editor-font-size, 13px);
+}
+
+body {
+  margin: 0;
+  padding: 12px 16px;
+  color: var(--fg);
+  background: var(--vscode-editor-background, #1e1e1e);
+  font-family: var(--font);
+  font-size: var(--font-size);
+  line-height: 1.55;
+}
+/* Inside VS Code let the panel/sidebar background show through. */
+body[class*='vscode-'] { background: transparent; }
+
+#list { display: flex; flex-direction: column; gap: 12px; }
+#list:not(:empty) + .empty { display: none; }
+.empty { color: var(--muted); max-width: 60ch; }
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  outline: 1px solid var(--hc-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 10px 14px 12px;
+  max-width: 80ch;
+}
+
+header { margin-bottom: 6px; }
+.title {
+  font-family: var(--mono);
+  font-size: var(--mono-size);
+  font-weight: 600;
+  color: var(--accent);
+  overflow-wrap: anywhere;
+}
+.loc { color: var(--muted); font-size: 0.9em; }
+.loc:empty { display: none; }
+
+.body > :first-child { margin-top: 0; }
+.body > :last-child { margin-bottom: 0; }
+.body p, .body ul, .body ol { margin: 0.6em 0; }
+.body ul, .body ol { padding-left: 1.4em; }
+.body h3 { font-size: 1em; margin: 0.8em 0 0.3em; }
+
+.body code {
+  font-family: var(--mono);
+  font-size: 0.95em;
+  color: var(--inline-code-fg);
+  background: var(--inline-code-bg);
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+
+.body pre {
+  position: relative;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin: 0.7em 0;
+  overflow-x: auto;
+}
+.body pre code {
+  font-size: var(--mono-size);
+  color: inherit;
+  background: none;
+  padding: 0;
+  white-space: pre;
+}
+.body pre[data-lang]:not([data-lang=''])::before {
+  content: attr(data-lang);
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-family: var(--font);
+  font-size: 0.8em;
+  color: var(--muted);
+}
+
+/* Blinking cursor at the end of text while the AI is still writing. */
+.streaming .body:empty::after,
+.streaming .body > :last-child::after,
+.streaming .body > pre:last-child code::after,
+.streaming .body > :is(ul, ol):last-child > li:last-child::after {
+  content: '▍';
+  color: var(--cursor);
+  animation: blink 1s steps(1) infinite;
+}
+.streaming .body > :is(pre, ul, ol):last-child::after { content: none; }
+.streaming .body:empty::after { content: 'Thinking…'; color: var(--muted); }
+
+@keyframes blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .streaming .body *::after { animation: none; }
+}
