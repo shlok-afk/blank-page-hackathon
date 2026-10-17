@@ -9,5 +9,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["packages/**/*.ts"]
+  "include": ["packages/core/**/*.ts", "packages/protocol/**/*.ts"]
 }
