@@ -47,6 +47,27 @@ export function startServer(port = 4321) {
   const clients = new Map<string, WebSocket>();
   let counter = 0;
 
+  // Without this, starting a second core dies with a raw Node stack trace.
+  // That is the single most likely way to break this on a demo day.
+  wss.on('error', (err: any) => {
+    if (err?.code === 'EADDRINUSE') {
+      console.log('');
+      console.log('  Port ' + port + ' is already in use.');
+      console.log('');
+      console.log('  If another window says "core started", you are already');
+      console.log('  running the backend - nothing to do.');
+      console.log('');
+      console.log('  To start a fresh one instead, stop that window first, or');
+      console.log('  free the port:');
+      console.log('    netstat -ano | findstr :' + port);
+      console.log('    taskkill /PID <number> /F');
+      console.log('');
+    } else {
+      console.log('[server] could not start:', err?.message ?? err);
+    }
+    process.exit(0);
+  });
+
   console.log('[server] listening on ws://localhost:' + port);
 
   wss.on('connection', (ws) => {
