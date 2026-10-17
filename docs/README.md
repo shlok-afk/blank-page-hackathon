@@ -1,10 +1,12 @@
 # Error Explainer
 
-> Your editor shows you *that* something is wrong. Error Explainer tells you *why*, in plain language, as soon as the error appears.
+> 💫 The greek prefix 'meta-" can mean 'beyond' or 'transcending.' How can you understand your code errors *beyond* what's shown in your editor?
+
+Imagine this: Your editor shows you *that* something is wrong. Error Explainer tells you *why*, in plain language, as soon as the error appears.
 
 Error Explainer watches your code editor for errors. When one sticks around, it shows a short, beginner-friendly explanation in a side panel: what the error means, why it probably happened, and how to fix it. You don't have to copy the error into a search engine or a chatbot.
 
-It starts with **VS Code** and is built so other editors (Neovim, JetBrains, Cursor) and browser-based coding tools (Jupyter notebooks, Code.org) can plug into the same engine later. See [Future Work](#future-work).
+Error Explainer is engineered to be compatible with a multitude of code editors. It starts with **VS Code** and is built so other editors (Neovim, JetBrains, Cursor) and browser-based coding tools such as Jupyter notebooks and Code.org can plug into the same engine later. See [Future Work](#future-work).
 
 ---
 
@@ -23,7 +25,7 @@ It starts with **VS Code** and is built so other editors (Neovim, JetBrains, Cur
 
 ## Applications
 
-Who it's for, and the moments it helps with.
+Our niche: Who it's for, and how Error Explainer fits in.
 
 | Who | When | How Error Explainer helps |
 |---|---|---|

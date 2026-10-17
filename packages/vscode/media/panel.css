@@ -121,8 +121,8 @@ header { margin-bottom: 10px; }
 .src { color: var(--fg); }
 .lang { color: var(--vscode-terminal-ansiMagenta, #bc3fbc); }
 .lang[data-lang='python'] { color: var(--vscode-terminal-ansiGreen, #0dbc79); }
-.lang[data-lang^='typescript'] { color: var(--vscode-terminal-ansiBlue, #2472c8); }
-.lang[data-lang^='javascript'] { color: var(--vscode-terminal-ansiYellow, #e5e510); }
+.lang:is([data-lang^='typescript'], [data-lang='tsx']) { color: var(--vscode-terminal-ansiBlue, #2472c8); }
+.lang:is([data-lang^='javascript'], [data-lang='jsx']) { color: var(--vscode-terminal-ansiYellow, #e5e510); }
 .loc { color: var(--vscode-terminal-ansiCyan, #11a8cd); }
 
 .body > :first-child { margin-top: 0; }
@@ -211,6 +211,8 @@ header { margin-bottom: 10px; }
   animation: shimmer 1.4s linear infinite;
 }
 
+.card.leaving { animation: leave 0.25s var(--ease) forwards; pointer-events: none; }
+@keyframes leave { to { opacity: 0; transform: scale(0.96); } }
 @keyframes rise { from { opacity: 0; transform: translateY(10px) scale(0.98); } }
 @keyframes glow {
   from { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--glass) 20%, transparent), 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent), 0 6px 20px rgb(0 0 0 / 0.15); }
