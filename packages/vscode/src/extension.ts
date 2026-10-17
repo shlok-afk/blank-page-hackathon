@@ -24,7 +24,10 @@ class ExplanationPanel implements vscode.WebviewViewProvider {
     const nonce = Math.random().toString(36).slice(2);
 
     view.webview.options = { enableScripts: true, localResourceRoots: [media] };
-    view.webview.onDidReceiveMessage((m) => m?.type === 'ready' && this.markReady());
+    view.webview.onDidReceiveMessage((m) => {
+      if (m?.type === 'ready') this.markReady();
+      if (m?.type === 'openSettings') vscode.commands.executeCommand('errorExplainer.showWelcome');
+    });
     view.onDidDispose(() => {
       this.view = undefined;
       this.ready = new Promise<void>((r) => (this.markReady = r));
@@ -42,7 +45,8 @@ class ExplanationPanel implements vscode.WebviewViewProvider {
   <div class="empty">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>
     <strong>All clear</strong>
-    <p>When an error shows up in your code, a plain-language explanation will appear here.</p>
+    <p>When an error shows up in your code, a plain-language explanation will appear here, with a fix you can copy.</p>
+    <p class="hint">Want it quieter, chattier, or offline? <button type="button" class="link" id="open-settings">Open settings</button> or click the gear icon above.</p>
   </div>
   <script nonce="${nonce}" src="${asset('panel.js')}"></script>
 </body>

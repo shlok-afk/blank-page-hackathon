@@ -106,7 +106,7 @@ window.addEventListener('message', ({ data: m }) => {
     if (gone) {
       cards.delete(m.id);
       gone.el.classList.add('leaving');
-      setTimeout(() => gone.el.remove(), 250); // timer, not animationend: reduced motion has no animation
+      setTimeout(() => gone.el.remove(), 300); // timer, not animationend: reduced motion has no animation
     }
     return;
   }
@@ -137,6 +137,8 @@ window.addEventListener('message', ({ data: m }) => {
 });
 
 // Tell the VS Code host we're listening (no-op elsewhere).
-if (typeof acquireVsCodeApi === 'function') acquireVsCodeApi().postMessage({ type: 'ready' });
+const host = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null;
+host?.postMessage({ type: 'ready' });
+document.getElementById('open-settings')?.addEventListener('click', () => host?.postMessage({ type: 'openSettings' }));
 
 if (typeof module === 'object') module.exports = { md, terminalTitle }; // for node self-check
