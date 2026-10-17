@@ -1,0 +1,43 @@
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
+import { join } from 'path';
+import { homedir } from 'os';
+import { createHash } from 'crypto';
+
+const DIR = join(homedir(), '.error-explainer');
+const FILE = join(DIR, 'cache.json');
+
+export type Cached = { headline: string; cause: string; fix: string };
+
+let memory: Record<string, Cached> | null = null;
+
+function load(): Record<string, Cached> {
+  if (memory) return memory;
+  try {
+    memory = JSON.parse(readFileSync(FILE, 'utf8'));
+  } catch {
+    memory = {};
+  }
+  return memory!;
+}
+
+function persist() {
+  try {
+    if (!existsSync(DIR)) mkdirSync(DIR, { recursive: true });
+    writeFileSync(FILE, JSON.stringify(memory, null, 2));
+  } catch (e) {
+    console.log('[cache] could not save:', e);
+  }
+}
+
+export function cacheKey(message: string, language: string): string {
+  return createHash('sha1').update(language + '|' + message).digest('hex');
+}
+
+export function cacheGet(key: string): Cached | undefined {
+  return load()[key];
+}
+
+export function cacheSet(key: string, value: Cached) {
+  load()[key] = value;
+  persist();
+}

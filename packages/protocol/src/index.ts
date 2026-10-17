@@ -20,23 +20,55 @@ export type ErrorReportedMessage = {
   column: number;
   language: string;      // 'typescript', 'python', ...
   severity: string;      // 'error' | 'warning'
+  source?: string;       // optional: 'Pylance', 'ts(2339)' - shown in the panel
 };
 
 export type PluginMessage = HelloMessage | FileSavedMessage | ErrorReportedMessage;
 
-// ---------- Messages the core sends BACK ----------
+// ---------- What the core sends BACK ----------
 
 export type Explanation = {
   headline: string;              // one-line plain-English summary
   cause: string;                 // why it happened
   fix: string;                   // what to change
-  relatedSave: string | null;    // "12s after you saved auth.py:88", or null
+  relatedSave: string | null;    // "You saved auth.py 12 seconds before this error appeared.", or null
 };
+
+// A ready-to-render block. The core builds this so a UI never has to
+// assemble it from the structured fields above.
+export type DisplayBlock = {
+  title: string;                 // the raw error line, e.g. "NameError: name 'pritn' is not defined"
+  language: string;              // display name, e.g. "Python"
+  location: string;              // "auth.py:88"
+  source: string;                // "Pylance" / "TypeError" / ""
+  text: string;                  // markdown: paragraphs, **bold**, `code`, lists, ``` fences
+};
+
+// The exact shape a renderer consumes. A UI can forward these verbatim,
+// with no field renaming and no markdown assembly of its own.
+export type PanelStartMessage = {
+  type: 'start';
+  id: string;
+  title: string;
+  language?: string;
+  location?: string;
+  source?: string;
+};
+
+export type PanelExplanationMessage = {
+  type: 'explanation';
+  id: string;
+  text: string;
+};
+
+export type PanelMessage = PanelStartMessage | PanelExplanationMessage;
 
 export type ExplanationMessage = {
   type: 'explanation';
   errorId: string;               // matches the error.reported it answers
-  explanation: Explanation;
+  explanation: Explanation;      // structured form
+  display: DisplayBlock;         // ready-to-render form
+  panel: PanelMessage[];         // ready-to-forward form (verbatim, in order)
 };
 
 export type CoreMessage = ExplanationMessage;

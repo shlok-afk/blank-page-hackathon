@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "tsx packages/core/src/index.ts",
     "fake": "tsx packages/core/dev/fake-plugin.ts",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "verify": "tsx packages/core/dev/verify.ts",
+    "e2e": "tsx packages/core/dev/e2e.ts",
+    "coverage": "tsx packages/core/dev/coverage.ts"
   },
   "keywords": [],
   "author": "",
