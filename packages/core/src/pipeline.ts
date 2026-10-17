@@ -65,7 +65,13 @@ export function onError(
         }
 
         resolve(await explain(
-          { message: e.message, file: e.file, line: e.line, language: e.language },
+          {
+            message: e.message,
+            file: e.file,
+            line: e.line,
+            language: e.language,
+            codeContext: e.codeContext,
+          },
           relatedSave,
         ));
       } catch (err: any) {

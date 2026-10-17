@@ -7,11 +7,7 @@ export const pythonErrors: LibraryEntry[] = [
   {
     id: 'py-none-subscript',
     language: 'python',
-<<<<<<< Updated upstream
-    pattern: /is not subscriptable/,
-=======
     pattern: /'NoneType' object is not subscriptable|Object of type 'None' is not subscriptable/, // runtime | Pylance
->>>>>>> Stashed changes
     headline: "You're indexing something that is None",
     cause: 'The variable used with [ ] actually holds None, not a list or dict.',
     fix: 'Print that variable on the line before. Whatever sets it either never ran or returned nothing.',

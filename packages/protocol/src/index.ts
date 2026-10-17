@@ -1,9 +1,17 @@
 // ---------- Messages a plugin sends TO the core ----------
 
+// The user's chosen behaviour, sent once on hello so the core can match it.
+// Everything is optional: a plugin that sends nothing gets the defaults.
+export type PluginSettings = {
+  patience?: number;      // ms to wait for an error to settle (the debounce)
+  narration?: number;     // 0..100 - how much hand-holding in the wording
+};
+
 export type HelloMessage = {
   type: 'hello';
   pluginId: string;
-  editor: string;        // 'vscode', 'nvim', ...
+  editor: string;         // 'vscode', 'nvim', ...
+  settings?: PluginSettings;
 };
 
 export type FileSavedMessage = {
@@ -21,6 +29,8 @@ export type ErrorReportedMessage = {
   language: string;      // 'typescript', 'python', ...
   severity: string;      // 'error' | 'warning'
   source?: string;       // optional: 'Pylance', 'ts(2339)' - shown in the panel
+  codeContext?: string;  // optional: surrounding lines, for a richer explanation
+  immediate?: boolean;   // optional: skip the debounce (the user asked on purpose)
 };
 
 export type PluginMessage = HelloMessage | FileSavedMessage | ErrorReportedMessage;

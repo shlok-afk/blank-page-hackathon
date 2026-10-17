@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 import { SAMPLES } from './samples';
 import { connectToCore } from './connection';
+import { WelcomePanel } from './welcome';
+import { StatusBarItem } from './statusBar';
 
 // Messages the panel understands. `chunk` and `explanation` match the core protocol,
 // so UI 1 can forward core messages straight through.
@@ -83,16 +85,47 @@ async function playSamples(panel: ExplanationPanel) {
 
 export function activate(context: vscode.ExtensionContext) {
   const panel = new ExplanationPanel(context.extensionUri);
-  const conn = connectToCore((m: PanelMessage) => {
-    if (m.type === 'explanation') return streamText(panel, m.id, m.text);
-    if (m.type === 'resolve') streams.delete(m.id); // stops any word-by-word playback for it
-    panel.post(m);
-  });
+  const welcome = new WelcomePanel(context.extensionUri);
+  const status = new StatusBarItem();
+  const conn = connectToCore(
+    (m: PanelMessage) => {
+      if (m.type === 'explanation') return streamText(panel, m.id, m.text);
+      if (m.type === 'resolve') streams.delete(m.id); // stops any word-by-word playback for it
+      panel.post(m);
+    },
+    (connected) => status.setConnected(connected),
+  );
+
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider('errorExplainer.panel', panel, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
     vscode.commands.registerCommand('errorExplainer.playSamples', () => playSamples(panel)),
+    vscode.commands.registerCommand('errorExplainer.showWelcome', () => welcome.show()),
+    // "Explain this error": ask for the current file's errors right now.
+    vscode.commands.registerCommand('errorExplainer.explainError', async () => {
+      const uri = vscode.window.activeTextEditor?.document.uri;
+      if (!uri) {
+        vscode.window.showInformationMessage('Error Explainer: open a file with an error first.');
+        return;
+      }
+      await vscode.commands.executeCommand('errorExplainer.panel.focus');
+      conn.explainNow(uri);
+    }),
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration('errorExplainer.statusBar')) {
+        status.setVisible(vscode.workspace.getConfiguration('errorExplainer').get('statusBar', true));
+      }
+    }),
+    status,
     { dispose: () => conn.stop() },
   );
+
+  status.setVisible(vscode.workspace.getConfiguration('errorExplainer').get('statusBar', true));
+
+  // First run only: open setup so people know what they just installed.
+  if (!context.globalState.get('errorExplainer.welcomeSeen')) {
+    welcome.show();
+    context.globalState.update('errorExplainer.welcomeSeen', true);
+  }
 }

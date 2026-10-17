@@ -40,6 +40,12 @@
         "title": "Open Welcome & Setup",
         "category": "Error Explainer",
         "icon": "$(gear)"
+      },
+      {
+        "command": "errorExplainer.explainError",
+        "title": "Explain this error",
+        "category": "Error Explainer",
+        "icon": "$(lightbulb)"
       }
     ],
     "menus": {
@@ -48,6 +54,17 @@
           "command": "errorExplainer.playSamples",
           "when": "view == errorExplainer.panel",
           "group": "navigation"
+        },
+        {
+          "command": "errorExplainer.showWelcome",
+          "when": "view == errorExplainer.panel",
+          "group": "navigation"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "errorExplainer.explainError",
+          "group": "errorExplainer@1"
         }
       ]
     },

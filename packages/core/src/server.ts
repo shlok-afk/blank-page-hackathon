@@ -4,6 +4,7 @@ import {
   ExplanationMessage,
   ErrorReportedMessage,
   Explanation,
+  PluginSettings,
 } from '../../protocol/src/index';
 import { onFileSaved, onError } from './pipeline';
 import { toDisplay, toPanelMessages } from './render';
@@ -39,6 +40,8 @@ function sanitize(raw: any, index: number): ErrorReportedMessage {
     language: str(raw.language),
     severity: str(raw.severity, 'error'),
     source: str(raw.source) || undefined,
+    codeContext: typeof raw.codeContext === 'string' ? raw.codeContext : undefined,
+    immediate: raw.immediate === true,
   };
 }
 
@@ -51,6 +54,7 @@ export function startServer(port = 4321) {
 
   wss.on('connection', (ws) => {
     let pluginId: string | null = null;
+    let settings: PluginSettings | undefined;
 
     ws.on('message', async (raw) => {
       let msg: any;
@@ -68,6 +72,7 @@ export function startServer(port = 4321) {
 
       if (msg.type === 'hello') {
         pluginId = str(msg.pluginId, 'unknown-plugin');
+        settings = msg.settings && typeof msg.settings === 'object' ? msg.settings : undefined;
         clients.set(pluginId, ws);
         console.log('[server] plugin connected:', pluginId, '(' + str(msg.editor, '?') + ')');
         return;
@@ -87,16 +92,21 @@ export function startServer(port = 4321) {
         const report = sanitize(msg, ++counter);
         console.log('[server] error reported:', report.message || '(empty)');
 
+        // The editor may already have waited for typing to settle, and an
+        // on-demand explain should answer straight away - so only the core's
+        // own patience applies when the plugin did not say otherwise.
+        const delay = report.immediate ? 0 : settings?.patience;
+
         let explanation: Explanation;
         try {
-          explanation = await onError(report);
+          explanation = await onError(report, delay);
         } catch (err: any) {
           console.log('[server] explanation failed:', err?.message ?? err);
           explanation = FALLBACK;
         }
 
         // The core does the translation, so a UI only has to forward.
-        const display = toDisplay(report, explanation);
+        const display = toDisplay(report, explanation, settings?.narration);
         const reply: ExplanationMessage = {
           type: 'explanation',
           errorId: report.errorId,
