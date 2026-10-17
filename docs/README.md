@@ -63,7 +63,7 @@ Errors outside the library still get a general explanation from pattern rules.
 
 The core doesn't depend on VS Code, so other editors can plug into it later without a rewrite.
 
-**Try it:** run `npm install`, then `npm run dev` to start the core. Then open this repo in VS Code and press **F5**, and open the **Squiggle** tab in the sidebar.
+**Try it:** run `npm install`, then `npm run dev` to start the core. Then open this repo in VS Code and press **F5**, and open the **Squiggle** tab in the sidebar. Full steps are in [INSTALL.md](INSTALL.md).
 
 ---
 
